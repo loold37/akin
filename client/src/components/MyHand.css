@@ -1,0 +1,107 @@
+.my-hand-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 4px 8px;
+  background-color: #171920;
+  border: 1px solid #282c38;
+  border-radius: var(--radius-sm);
+  height: 120px;
+  flex: 1;
+}
+
+.hand-cards-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 100%;
+}
+
+.hand-empty-msg {
+  color: var(--text-muted);
+  font-size: 12px;
+  padding: 0 16px;
+}
+
+/* Classic God Field Style White Rectangular Card Slot */
+.card-slot {
+  width: 74px;
+  min-width: 74px;
+  height: 96px;
+  background-color: #ffffff;
+  border: 1.5px solid #1a1a1a;
+  border-radius: 2px;
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  transition: transform 0.1s ease, border-color 0.1s ease;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
+}
+
+.card-slot:hover {
+  background-color: #ffffff;
+  transform: translateY(-4px);
+  box-shadow: 0 5px 12px rgba(0, 0, 0, 0.6);
+  border-color: #000000;
+  z-index: 10;
+}
+
+.card-slot.playable {
+  border: 1.5px solid var(--accent-gold);
+}
+
+.card-slot.selected {
+  border: 2px solid #d32f2f !important;
+  transform: translateY(-6px) !important;
+  background-color: #fff5f5 !important;
+  z-index: 20;
+}
+
+.card-inner-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  height: 100%;
+  padding: 5px 3px 4px;
+  text-align: center;
+}
+
+.card-top-icon {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.card-slot-name {
+  font-size: 11px;
+  font-weight: 900;
+  color: #111111;
+  line-height: 1.2;
+  word-break: keep-all;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.card-sub-info {
+  font-size: 9.5px;
+  font-weight: 800;
+  padding: 1px 4px;
+  border-radius: 2px;
+  background-color: rgba(0, 0, 0, 0.08);
+  color: #222222;
+}
+
+/* Category Accent Badges (God Field Color Palette) */
+.type-weapon .card-sub-info { background-color: rgba(211, 47, 47, 0.15); color: #b71c1c; }
+.type-shield .card-sub-info { background-color: rgba(25, 118, 210, 0.15); color: #0d47a1; }
+.type-item .card-sub-info { background-color: rgba(123, 31, 162, 0.15); color: #4a148c; }
+.type-treasure .card-sub-info { background-color: rgba(245, 124, 0, 0.15); color: #e65100; }
+.type-malice .card-sub-info { background-color: #1a1a1a; color: #ff5252; }
+.type-malice { background-color: #f2eded; }
+
+

@@ -1,0 +1,104 @@
+.game-over-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  animation: fadeIn 0.2s ease;
+}
+
+.game-over-modal {
+  width: 520px;
+  max-width: 90vw;
+  background-color: #1a1c24;
+  border: 2px solid var(--accent-gold);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.game-over-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid #2d3140;
+  padding-bottom: 10px;
+}
+
+.game-over-icon {
+  font-size: 26px;
+}
+
+.game-over-title {
+  font-size: 18px;
+  font-weight: 900;
+  color: #ffffff;
+  letter-spacing: 0.5px;
+}
+
+.scores-table-container {
+  background-color: #121318;
+  border: 1px solid #2d3140;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.scores-table-header {
+  display: flex;
+  padding: 8px 12px;
+  background-color: #1c1e27;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--text-muted);
+  border-bottom: 1px solid #2d3140;
+}
+
+.scores-table-body {
+  display: flex;
+  flex-direction: column;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.score-row {
+  display: flex;
+  padding: 10px 12px;
+  font-size: 12px;
+  border-bottom: 1px solid #1e2029;
+  align-items: center;
+}
+
+.score-row.rank-1 {
+  background-color: rgba(201, 151, 56, 0.12);
+  color: #ffe082;
+  font-weight: 700;
+}
+
+.score-row.row-zero {
+  opacity: 0.75;
+}
+
+.col-rank { width: 56px; font-weight: 800; }
+.col-name { width: 110px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.col-reason { flex: 1; color: #9ea5b5; font-size: 11px; }
+.col-score { width: 70px; text-align: right; font-weight: 900; color: #81c784; }
+.col-score.score-zero { color: #78909c; }
+
+.game-over-footer {
+  display: flex;
+  justify-content: center;
+  margin-top: 4px;
+}
+
+.restart-btn {
+  width: 100%;
+  padding: 11px;
+  font-size: 14px;
+  font-weight: 900;
+  border-radius: var(--radius-sm);
+}

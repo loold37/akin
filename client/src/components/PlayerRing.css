@@ -1,0 +1,228 @@
+.player-ring-container {
+  width: 100%;
+  padding: 4px 8px;
+}
+
+.player-ring-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+.player-card {
+  width: 148px;
+  height: 66px;
+  background-color: #1a1c24;
+  border: 1px solid #2d3140;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  padding: 6px 8px;
+  gap: 8px;
+  position: relative;
+  transition: border-color 0.15s ease;
+}
+
+.player-card.is-me {
+  border-color: #3b455c;
+  background-color: #1f2330;
+}
+
+.player-card.active-turn {
+  border: 2px solid var(--accent-gold);
+  animation: turnBlink 1.5s infinite;
+}
+
+.player-card.dead {
+  opacity: 0.45;
+  background-color: #131418;
+  border-color: #22252c;
+  filter: grayscale(100%);
+}
+
+.player-card.dead.is-me {
+  opacity: 0.85;
+  background-color: #1a151b;
+  border: 1.5px dashed #ef5350;
+  filter: none;
+}
+
+.player-card.dead.is-me .player-name {
+  color: #ff8a80;
+}
+
+.player-card.dead.is-me .status-dead-label {
+  color: #ff5252;
+  font-weight: 800;
+}
+
+.player-card.selectable {
+  cursor: pointer;
+  border-color: var(--accent-red);
+  animation: pulseGlow 1.2s infinite;
+}
+
+.player-card.selectable:hover {
+  border-color: #ff5252;
+}
+
+.player-avatar-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.player-avatar-icon {
+  font-size: 24px;
+}
+
+.turn-indicator-badge {
+  position: absolute;
+  top: -12px;
+  font-size: 8px;
+  font-weight: 900;
+  background-color: var(--accent-gold);
+  color: #121316;
+  padding: 1px 3px;
+  border-radius: 2px;
+  letter-spacing: 0.5px;
+}
+
+.player-info-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+}
+
+.player-name-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+}
+
+.player-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.player-card.fate-linked {
+  border-color: #ab47bc;
+  box-shadow: 0 0 8px rgba(171, 71, 188, 0.4);
+}
+
+.badge-cluster {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.fate-badge {
+  font-size: 10px;
+  background-color: rgba(156, 39, 176, 0.3);
+  border: 1px solid #ab47bc;
+  color: #ea80fc;
+  padding: 0 3px;
+  border-radius: 2px;
+}
+
+.silence-badge {
+  font-size: 9px;
+  font-weight: 800;
+  background-color: #c62828;
+  color: #ffffff;
+  padding: 1px 4px;
+  border-radius: 2px;
+}
+
+.bid-badge {
+  font-size: 9px;
+  font-weight: 800;
+  background-color: #1565c0;
+  border: 1px solid #42a5f5;
+  color: #e3f2fd;
+  padding: 1px 4px;
+  border-radius: 2px;
+}
+
+.player-status-row {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.status-dead-label {
+  color: #757575;
+  font-weight: 700;
+}
+
+.card-count-label {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  color: #a0a6b5;
+}
+
+.card-icon-symbol {
+  font-size: 12px;
+}
+
+.card-count-label strong {
+  color: #ffffff;
+}
+
+.target-select-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(211, 47, 47, 0.2);
+  border: 1px dashed var(--accent-red);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 900;
+  color: #ffffff;
+  letter-spacing: 1px;
+}
+
+@media (max-width: 900px) {
+  .player-ring-container {
+    padding: 2px 4px;
+    overflow-x: auto;
+  }
+
+  .player-ring-grid {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    gap: 6px;
+  }
+
+  .player-card {
+    width: 120px;
+    min-width: 120px;
+    height: 56px;
+    padding: 4px 6px;
+    gap: 6px;
+  }
+
+  .player-avatar-icon {
+    font-size: 18px;
+  }
+
+  .player-name {
+    font-size: 11px;
+  }
+
+  .hand-stat-badge {
+    font-size: 9px;
+  }
+}

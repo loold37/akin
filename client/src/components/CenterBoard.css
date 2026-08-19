@@ -1,0 +1,372 @@
+.center-board-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 100%;
+  min-height: 0;
+}
+
+.center-top-row {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  padding: 8px 14px;
+  background-color: var(--bg-panel);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.center-deck-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-width: 75px;
+}
+
+.deck-visual-stack {
+  position: relative;
+  width: 44px;
+  height: 56px;
+}
+
+.deck-card-back {
+  width: 100%;
+  height: 100%;
+  background-color: #242836;
+  border: 2px solid #444c60;
+  border-radius: var(--radius-sm);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.deck-symbol {
+  font-size: 18px;
+}
+
+.deck-count-badge {
+  position: absolute;
+  bottom: -6px;
+  background-color: var(--accent-red);
+  color: #ffffff;
+  font-size: 9px;
+  font-weight: 900;
+  padding: 1px 5px;
+  border-radius: 10px;
+  border: 1px solid #ffffff;
+}
+
+.deck-info-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+/* ── Timer Space Right of My Info (Clean minimal digits only) ── */
+.center-timer-section {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  align-self: stretch;
+  margin: 2px 0;
+  background-color: #141722;
+  border: 1.5px solid #2f364a;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+  box-sizing: border-box;
+  transition: all 0.2s ease;
+}
+
+.center-timer-section.mode-event {
+  background-color: #241d13;
+  border-color: #d4a017;
+  box-shadow: 0 0 6px rgba(212, 160, 23, 0.25);
+}
+
+.timer-number {
+  font-size: 16px;
+  font-weight: 900;
+  font-family: 'Courier New', monospace, sans-serif;
+  color: #eceff1;
+  line-height: 1;
+  text-align: center;
+}
+
+.center-timer-section.mode-event .timer-number {
+  color: #ffd54f;
+}
+
+.timer-number.warning {
+  color: #ff5252 !important;
+  animation: timerWarningBlink 0.8s infinite;
+}
+
+@keyframes timerWarningBlink {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(1.05); }
+}
+
+@keyframes pulseGold {
+  0%, 100% { border-color: #d4a017; }
+  50% { border-color: #ffe082; }
+}
+
+.center-status-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  text-align: center;
+}
+
+.phase-pill {
+  font-size: 10px;
+  font-weight: 700;
+  background-color: #12141a;
+  border: 1px solid #333a4d;
+  color: #90a4ae;
+  padding: 2px 10px;
+  border-radius: 12px;
+  letter-spacing: 0.5px;
+}
+
+.turn-announcement {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.my-turn-highlight {
+  color: #ffd54f;
+  border: 1px solid #c99738;
+  background-color: rgba(201, 151, 56, 0.12);
+  padding: 2px 8px;
+  border-radius: 2px;
+}
+
+.free-for-all-banner {
+  font-size: 10px;
+  font-weight: 800;
+  color: #ff5252;
+  background: rgba(211, 47, 47, 0.15);
+  border: 1px solid #d32f2f;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  animation: pulseGlow 1s infinite;
+}
+
+.center-my-identity-section {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.identity-card {
+  background-color: #151821;
+  border: 1px solid #2d3345;
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  min-width: 110px;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.identity-header {
+  font-size: 9px;
+  font-weight: 800;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.alignment-tag {
+  font-size: 11px;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+.alignment-tag.good {
+  background-color: #1b5e20;
+  color: #a5d6a7;
+  border: 1px solid #2e7d32;
+}
+
+.alignment-tag.evil {
+  background-color: #b71c1c;
+  color: #ef9a9a;
+  border: 1px solid #c62828;
+}
+
+.alignment-tag.dead {
+  background-color: #242833;
+  color: #90a4ae;
+  border: 1px solid #454f63;
+}
+
+.my-dead-status-tag {
+  color: #ef5350;
+  font-weight: 800;
+}
+
+.identity-malice-row {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.malice-score {
+  color: #ff8a80;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.identity-link-row {
+  margin-top: 4px;
+}
+
+.btn-fate-link-badge {
+  background: rgba(239, 83, 80, 0.2);
+  border: 1px dashed #ef5350;
+  color: #ff8a80;
+  font-size: 9px;
+  font-weight: 800;
+  padding: 3px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: background-color 0.2s, transform 0.1s;
+  animation: pulseGlow 1.5s infinite;
+}
+
+.btn-fate-link-badge:hover {
+  background: rgba(239, 83, 80, 0.4);
+  transform: translateY(-1px);
+}
+
+/* ── Mobile Chat Log Stream (3~4 lines) ── */
+.center-mobile-chat-log {
+  display: none;
+}
+
+/* ── Bottom Row: Event & Action Embedded Box ── */
+.center-bottom-row {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── Responsive Mobile Layout (<= 900px) ── */
+@media (max-width: 900px) {
+  .center-top-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 10px;
+  }
+
+  .center-deck-section {
+    min-width: auto;
+    gap: 2px;
+  }
+
+  .center-deck-section .deck-visual-stack {
+    width: 34px;
+    height: 46px;
+  }
+
+  .center-deck-section .deck-symbol {
+    font-size: 15px;
+  }
+
+  .center-deck-section .deck-info-label {
+    font-size: 10px;
+    white-space: nowrap;
+  }
+
+  .center-status-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    text-align: center;
+  }
+
+  .center-status-section .phase-pill {
+    font-size: 9px;
+    padding: 1px 6px;
+  }
+
+  .turn-announcement {
+    font-size: 12px;
+  }
+
+  .center-my-identity-section {
+    min-width: auto;
+  }
+
+  .identity-card {
+    min-width: auto;
+    padding: 4px 6px;
+    gap: 2px;
+  }
+
+  .identity-header {
+    font-size: 8px;
+  }
+
+  .alignment-tag {
+    font-size: 10px;
+    padding: 1px 4px;
+  }
+
+  .identity-malice-row {
+    font-size: 9px;
+  }
+
+  .center-mobile-chat-log {
+    display: flex;
+    flex-direction: column;
+    height: 85px;
+    min-height: 80px;
+    max-height: 95px;
+    background-color: var(--bg-panel);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+  }
+
+  .center-mobile-chat-log .chat-messages-container {
+    height: 100%;
+  }
+
+  .center-mobile-chat-log .chat-messages-area {
+    padding: 4px 8px;
+    gap: 4px;
+  }
+
+  .center-mobile-chat-log .chat-message-item {
+    font-size: 11px;
+    line-height: 1.3;
+  }
+}

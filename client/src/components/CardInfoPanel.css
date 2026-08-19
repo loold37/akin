@@ -1,0 +1,171 @@
+.card-info-panel {
+  width: 240px;
+  min-width: 240px;
+  height: 120px;
+  background-color: #1a1c24;
+  border: 1.5px solid #2d3140;
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-sizing: border-box;
+}
+
+.card-info-panel.empty {
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.card-info-empty-icon {
+  font-size: 22px;
+  margin-bottom: 2px;
+  opacity: 0.4;
+}
+
+.card-info-empty-text {
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.card-info-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-bottom: 1px solid #2a2d3a;
+  padding-bottom: 5px;
+  flex-shrink: 0;
+}
+
+.card-info-title {
+  font-size: 13px;
+  font-weight: 900;
+  color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+
+.card-badge {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 1px 5px;
+  border-radius: 2px;
+  color: #ffffff;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.badge-weapon { background-color: #d32f2f; }
+.badge-shield { background-color: #1976d2; }
+.badge-item { background-color: #7b1fa2; }
+.badge-treasure { background-color: #f57c00; }
+.badge-malice { background-color: #161820; border: 1px solid #e53935; color: #ff8a80; }
+.badge-event { background-color: #388e3c; }
+.badge-tool { background-color: #455a64; }
+.badge-default { background-color: #37474f; }
+
+.card-malice-val {
+  font-size: 10px;
+  font-weight: 800;
+  color: #ff8a80;
+  background-color: rgba(229, 57, 53, 0.15);
+  border: 1px solid rgba(229, 57, 53, 0.3);
+  padding: 1px 4px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.card-malice-mod {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 1px 4px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.card-malice-mod.positive {
+  color: #ff8a80;
+  background-color: rgba(229, 57, 53, 0.15);
+  border: 1px solid rgba(229, 57, 53, 0.3);
+}
+
+.card-malice-mod.negative {
+  color: #69f0ae;
+  background-color: rgba(0, 230, 118, 0.15);
+  border: 1px solid rgba(0, 230, 118, 0.3);
+}
+
+.card-info-body {
+  flex: 1;
+  overflow-y: auto;
+  margin: 4px 0;
+  scrollbar-width: thin;
+  scrollbar-color: #333a4d transparent;
+}
+
+.card-info-body::-webkit-scrollbar {
+  width: 4px;
+}
+
+.card-info-body::-webkit-scrollbar-thumb {
+  background-color: #333a4d;
+  border-radius: 2px;
+}
+
+.card-info-desc {
+  font-size: 11px;
+  line-height: 1.35;
+  color: #c4c8d4;
+  word-break: keep-all;
+}
+
+.card-info-detailed-rule {
+  margin-top: 4px;
+  padding: 4px 6px;
+  background-color: #13141a;
+  border-radius: 2px;
+  border: 1px solid #222530;
+}
+
+.detailed-rule-label {
+  font-size: 9.5px;
+  font-weight: 900;
+  color: var(--accent-gold);
+  display: block;
+  margin-bottom: 2px;
+}
+
+.detailed-rule-text {
+  font-size: 9.5px;
+  line-height: 1.35;
+  color: #9ea5b5;
+  white-space: pre-line;
+  word-break: keep-all;
+}
+
+.card-info-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.card-special-tag {
+  font-size: 10px;
+  color: var(--accent-gold);
+  font-weight: 800;
+}
+
+.card-special-tag.tag-dark-malice {
+  color: #ff5252;
+}
+
+.card-special-tag.tag-event {
+  color: #81c784;
+}

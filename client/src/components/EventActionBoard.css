@@ -1,0 +1,1028 @@
+.event-action-board {
+  background-color: #161820;
+  border: 1px solid #2d3345;
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 100%;
+  min-height: 0;
+  max-height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  box-sizing: border-box;
+  justify-content: flex-start;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+/* Custom Scrollbar for EventActionBoard */
+.event-action-board::-webkit-scrollbar,
+.event-action-scroll-area::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.event-action-board::-webkit-scrollbar-track,
+.event-action-scroll-area::-webkit-scrollbar-track {
+  background: #101216;
+  border-radius: 3px;
+}
+
+.event-action-board::-webkit-scrollbar-thumb,
+.event-action-scroll-area::-webkit-scrollbar-thumb {
+  background: #363c4e;
+  border-radius: 3px;
+}
+
+.event-action-board::-webkit-scrollbar-thumb:hover,
+.event-action-scroll-area::-webkit-scrollbar-thumb:hover {
+  background: #ff5252;
+}
+
+.event-action-scroll-area {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-right: 2px;
+}
+
+.event-action-board.active-action {
+  background-color: #1a1e28;
+  border-color: #ff5252;
+  box-shadow: inset 0 0 12px rgba(211, 47, 47, 0.2);
+}
+
+.event-action-board.type-vote {
+  border-color: var(--accent-gold);
+  box-shadow: inset 0 0 12px rgba(201, 151, 56, 0.2);
+}
+
+.event-action-board.type-cards {
+  border-color: #2979ff;
+  box-shadow: inset 0 0 12px rgba(41, 121, 255, 0.2);
+}
+
+.embedded-action-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.embedded-action-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid #272c3d;
+  padding-bottom: 6px;
+}
+
+.action-tag {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 2px;
+}
+
+.tag-danger { background-color: var(--accent-red); color: #ffffff; }
+.tag-gold { background-color: var(--accent-gold); color: #121316; }
+.tag-blue { background-color: #2979ff; color: #ffffff; }
+
+.embedded-action-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: #ffffff;
+  flex: 1;
+}
+
+.embedded-timer-badge {
+  font-size: 11px;
+  font-weight: 900;
+  background-color: var(--accent-red);
+  color: #ffffff;
+  padding: 2px 8px;
+  border-radius: 10px;
+  animation: pulseGlow 1s infinite;
+}
+
+.embedded-action-desc {
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.35;
+}
+
+.embedded-options-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 6px;
+  max-height: 110px;
+  overflow-y: auto;
+}
+
+.btn-embedded-shield,
+.btn-embedded-interrupt,
+.btn-embedded-vote,
+.btn-embedded-target {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  font-size: 11px;
+  text-align: left;
+  border-radius: var(--radius-sm);
+}
+
+.btn-embedded-shield {
+  background-color: #122238;
+  border-color: #1976d2;
+}
+
+.btn-embedded-shield:hover {
+  background-color: #183359;
+}
+
+.btn-embedded-interrupt {
+  background-color: #261536;
+  border-color: #7b1fa2;
+}
+
+.btn-embedded-vote {
+  background-color: #212636;
+  border-color: #3b4560;
+}
+
+.btn-embedded-vote:hover {
+  background-color: #2d354b;
+  border-color: var(--accent-gold);
+}
+
+.opt-name {
+  font-weight: 700;
+  color: #ffffff;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.opt-desc {
+  font-size: 9px;
+  color: #90a4ae;
+  display: none;
+}
+
+.opt-action-label {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--accent-gold);
+  margin-left: 6px;
+}
+
+.empty-defense-warning {
+  font-size: 11px;
+  color: #ff8a80;
+  background-color: rgba(211, 47, 47, 0.1);
+  border: 1px dashed var(--accent-red);
+  padding: 8px;
+  border-radius: var(--radius-sm);
+  text-align: center;
+}
+
+.defense-skip-bar {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+
+/* Human Shield Target Selection Box */
+.human-shield-picker-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background-color: #1a1724;
+  border: 1.5px solid #8e24aa;
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  margin-top: 6px;
+  animation: fadeIn 0.2s ease;
+}
+
+.human-shield-picker-title {
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #ce93d8;
+}
+
+.human-shield-candidates-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.btn-candidate-human-shield {
+  background-color: #2a1538;
+  border: 1px solid #ab47bc;
+  color: #f3e5f5;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-candidate-human-shield:hover {
+  background-color: #6a1b9a;
+  border-color: #e1bee7;
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.btn-cancel-human-shield {
+  background-color: #212530;
+  border: 1px solid #3d465c;
+  color: #90a4ae;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.btn-cancel-human-shield:hover {
+  background-color: #2f3647;
+  color: #eceff1;
+}
+
+.btn-skip-defense {
+  background-color: #3b1414;
+  border: 1px solid #d32f2f;
+  color: #ff8a80;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-skip-defense:hover {
+  background-color: #d32f2f;
+  color: #ffffff;
+  box-shadow: 0 0 8px rgba(211, 47, 47, 0.5);
+}
+
+.btn-skip-defense.disabled-skipped {
+  background-color: #212634;
+  border-color: #3b4560;
+  color: #90a4ae;
+  cursor: not-allowed;
+}
+
+.btn-skip-defense.disabled-skipped:hover {
+  background-color: #212634;
+  color: #90a4ae;
+  box-shadow: none;
+}
+
+/* Submission Card Select */
+.embedded-cards-selection {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.embedded-submission-cards-row {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 4px 0;
+  max-height: 70px;
+}
+
+.embedded-sub-card {
+  width: 70px;
+  min-width: 70px;
+  height: 60px;
+  background-color: #1e2230;
+  border: 1.5px solid #363e54;
+  border-radius: 2px;
+  padding: 5px 6px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  cursor: pointer;
+  position: relative;
+  font-size: 10px;
+  box-sizing: border-box;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.embedded-sub-card:hover {
+  border-color: #7986cb;
+  transform: translateY(-2px);
+}
+
+.embedded-sub-card.selected {
+  border-color: #ffd54f !important;
+  background-color: #2e2817 !important;
+  box-shadow: 0 0 8px rgba(255, 213, 79, 0.3);
+}
+
+.sub-c-name {
+  font-weight: 800;
+  color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+
+.sub-c-cat {
+  font-size: 8.5px;
+  font-weight: 700;
+  color: #90a4ae;
+}
+
+.sub-c-check {
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  font-weight: 900;
+  color: #ffd54f;
+  font-size: 11px;
+}
+
+.embedded-submit-btn {
+  padding: 6px 12px;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+/* Standby Idle Mode */
+.event-action-board.idle {
+  background-color: #13151c;
+  border: 1px dashed #242938;
+}
+
+.embedded-idle-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px;
+}
+
+.idle-icon {
+  font-size: 24px;
+  opacity: 0.6;
+}
+
+.idle-text-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.idle-headline {
+  font-size: 12px;
+  font-weight: 700;
+  color: #a0a7b8;
+}
+
+.idle-subtext {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+/* Event Card Info & Rules Box inside Action Board */
+.embedded-event-card-desc {
+  background: rgba(201, 151, 56, 0.08);
+  border-left: 3px solid var(--accent-gold);
+  border-radius: 4px;
+  padding: 6px 10px;
+  margin-bottom: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.event-desc-text {
+  font-size: 11px;
+  color: #ffecb3;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.event-rule-text {
+  font-size: 10px;
+  color: #c9b080;
+  line-height: 1.3;
+}
+
+.escape-kit-bar {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed rgba(123, 31, 162, 0.4);
+}
+
+/* ── Fate Link Overlay Styles ── */
+.event-action-board.fate-link-overlay {
+  border-color: #ef5350;
+  background-color: #1f1418;
+  box-shadow: inset 0 0 16px rgba(239, 83, 80, 0.25);
+}
+
+.btn-close-fate {
+  background: none;
+  border: 1px solid #546e7a;
+  color: #b0bec5;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.btn-close-fate:hover {
+  background: #37474f;
+  color: #ffffff;
+}
+
+/* ── Bait Monster Target Styles ── */
+.bait-monster-target-box {
+  background: linear-gradient(135deg, rgba(211, 47, 47, 0.18), rgba(30, 10, 15, 0.4));
+  border: 2px solid #ef5350;
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 0 12px rgba(239, 83, 80, 0.2);
+}
+
+.monster-target-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.monster-icon {
+  font-size: 28px;
+  animation: pulseGlow 1.2s infinite;
+}
+
+.monster-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.monster-name {
+  font-size: 13px;
+  font-weight: 800;
+  color: #ff8a80;
+}
+
+.monster-desc {
+  font-size: 11px;
+  color: #ffcdd2;
+  line-height: 1.3;
+}
+
+.bait-weapon-selection-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.btn-kill-monster {
+  background: linear-gradient(135deg, #d32f2f, #b71c1c);
+  color: #ffffff;
+  border: 1px solid #ff5252;
+  border-radius: 6px;
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(211, 47, 47, 0.4);
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.btn-kill-monster:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #37474f;
+  border-color: #546e7a;
+  box-shadow: none;
+}
+
+.btn-kill-monster:not(:disabled):hover {
+  background: linear-gradient(135deg, #f44336, #d32f2f);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(244, 67, 54, 0.6);
+}
+
+.bait-vote-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #cfd8dc;
+  margin-bottom: 6px;
+}
+
+/* ── Prophecy (예언) Styles (2019 Retro God Field Style + Responsive) ── */
+.tag-purple {
+  background: #2a1538;
+  color: #ce93d8;
+  border: 1px solid #8e24aa;
+}
+
+.prophecy-action-box {
+  background: #191220;
+  border: 1.5px solid #8e24aa;
+  border-radius: var(--radius-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-sizing: border-box;
+}
+
+.prophecy-cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 220px;
+  overflow-y: auto;
+  padding: 4px 2px;
+}
+
+.prophecy-card-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #14101c;
+  border: 1px solid #4a2860;
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  cursor: grab;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+  user-select: none;
+  box-sizing: border-box;
+}
+
+.prophecy-card-item.is-next-draw {
+  border-color: #ffd54f;
+  background-color: #201a14;
+}
+
+.prophecy-card-item:hover {
+  background-color: #251b30;
+  border-color: #ba68c8;
+}
+
+.prophecy-card-item.dragging {
+  opacity: 0.4;
+  border: 1.5px dashed #ce93d8;
+}
+
+.prophecy-order-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 800;
+  color: #ba68c8;
+  background: #0f0b14;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid #4a2860;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.prophecy-card-item.is-next-draw .prophecy-order-badge {
+  color: #ffd54f;
+  border-color: #d4a017;
+}
+
+.order-num {
+  font-weight: 900;
+  color: #ffffff;
+}
+
+.prophecy-card-inner {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.prophecy-card-main {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.prophecy-card-icon {
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.prophecy-card-name {
+  font-size: 12px;
+  font-weight: 800;
+  color: #f3e5f5;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.prophecy-card-cat {
+  font-size: 9px;
+  font-weight: 800;
+  padding: 1px 4px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.prophecy-card-cat.cat-event {
+  background: rgba(255, 179, 0, 0.2);
+  color: #ffd54f;
+  border: 1px solid #d4a017;
+}
+
+.prophecy-card-cat.cat-malice {
+  background: rgba(229, 57, 53, 0.2);
+  color: #ef5350;
+  border: 1px solid #c62828;
+}
+
+.prophecy-card-cat.cat-tool {
+  background: rgba(30, 136, 229, 0.2);
+  color: #64b5f6;
+  border: 1px solid #2979ff;
+}
+
+.prophecy-card-desc {
+  font-size: 10px;
+  color: #90a4ae;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.prophecy-move-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.btn-prophecy-move {
+  background: #381b4d;
+  border: 1px solid #7b1fa2;
+  color: #f3e5f5;
+  font-size: 11px;
+  font-weight: 900;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-prophecy-move:not(:disabled):hover {
+  background: #6a1b9a;
+  border-color: #ce93d8;
+  color: #ffffff;
+}
+
+.btn-prophecy-move:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+}
+
+.btn-prophecy-confirm {
+  background-color: var(--accent-gold);
+  border: 1.5px solid #d4a017;
+  color: #121316;
+  font-size: 14px;
+  font-weight: 900;
+  width: 100%;
+  padding: 10px 16px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.btn-prophecy-confirm:hover {
+  background-color: #ffd54f;
+  border-color: #ffe082;
+}
+
+@media (max-width: 600px) {
+  .prophecy-card-item {
+    padding: 6px 8px;
+    gap: 6px;
+  }
+  
+  .prophecy-order-badge {
+    padding: 2px 6px;
+    font-size: 10px;
+  }
+
+  .order-text {
+    display: none;
+  }
+
+  .prophecy-card-desc {
+    display: none;
+  }
+
+  .btn-prophecy-move {
+    width: 26px;
+    height: 26px;
+    font-size: 10px;
+  }
+}
+
+/* ── My Turn Center End Turn Board ── */
+.event-action-board.my-turn-board {
+  background: linear-gradient(135deg, rgba(201, 151, 56, 0.08), rgba(22, 24, 32, 0.95));
+  border-color: var(--accent-gold);
+  box-shadow: inset 0 0 16px rgba(201, 151, 56, 0.15);
+}
+
+.my-turn-center-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-align: center;
+  padding: 8px 16px;
+}
+
+.my-turn-badge {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--accent-gold);
+  background: rgba(201, 151, 56, 0.15);
+  border: 1px solid rgba(201, 151, 56, 0.4);
+  padding: 4px 14px;
+  border-radius: 12px;
+  animation: pulseGlow 1.8s infinite;
+}
+
+.my-turn-guide {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.3;
+}
+
+.btn-center-end-turn {
+  background: linear-gradient(135deg, #ffc107, #ff9800);
+  border: 1px solid #ffe082;
+  color: #121212;
+  font-size: 14px;
+  font-weight: 900;
+  padding: 10px 36px;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(255, 152, 0, 0.4);
+  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 4px;
+}
+
+.btn-center-end-turn:hover {
+  background: linear-gradient(135deg, #ffd54f, #ffa726);
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 6px 18px rgba(255, 167, 38, 0.6);
+}
+
+.btn-center-end-turn:active {
+  transform: translateY(1px) scale(0.98);
+}
+
+/* ── Mayuk Bidding Status Bar ── */
+.bidding-status-bar {
+  background-color: #12141c;
+  border: 1px solid #282f42;
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 4px 0 8px 0;
+}
+
+.bidding-status-header {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--accent-gold);
+}
+
+.bidding-status-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.bidding-chip {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.bidding-chip.done {
+  background-color: rgba(41, 121, 255, 0.2);
+  border: 1px solid #2979ff;
+  color: #64b5f6;
+  font-weight: 800;
+}
+
+.bidding-chip.waiting {
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid #3b4255;
+  color: var(--text-muted);
+}
+
+/* ── Dead Spectator Notice Box (2019 Mafia 42 / God Field Style) ── */
+.dead-spectator-board {
+  border-color: #3b4052;
+}
+
+.dead-spectator-notice-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background-color: #13141a;
+  border: 1px dashed #454b5f;
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  margin-top: 8px;
+}
+
+.dead-notice-icon {
+  font-size: 24px;
+  opacity: 0.8;
+  flex-shrink: 0;
+}
+
+.dead-notice-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dead-notice-title {
+  font-size: 12px;
+  font-weight: 900;
+  color: #b0bec5;
+  letter-spacing: 0.5px;
+}
+
+.dead-notice-desc {
+  font-size: 11px;
+  color: #8892a4;
+  line-height: 1.4;
+}
+
+/* ── Revealed Cards Board (2019 Mafia 42 / God Field Style) ── */
+.revealed-cards-board {
+  border-color: var(--accent-gold);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.reveal-result-banner {
+  background-color: #1a1512;
+  border: 1.5px solid #d4a017;
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+}
+
+.reveal-reason-text {
+  font-size: 13px;
+  font-weight: 800;
+  color: #ffd54f;
+  line-height: 1.4;
+}
+
+.revealed-cards-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background-color: #14161f;
+  border: 1px solid #282d3d;
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+}
+
+.revealed-cards-title {
+  font-size: 12px;
+  font-weight: 800;
+  color: #b0bec5;
+}
+
+.revealed-cards-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-height: 180px;
+  overflow-y: auto;
+  padding: 4px 2px;
+}
+
+.revealed-cards-grid .card-slot {
+  width: 68px;
+  height: 96px;
+  flex-shrink: 0;
+}
+
+.empty-reveal-hand {
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 12px;
+  text-align: center;
+}
+
+.reveal-confirm-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background-color: #12141c;
+  border: 1px solid #282f42;
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+}
+
+.reveal-confirm-status {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.confirm-status-text {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--accent-gold);
+}
+
+.btn-confirm-reveal {
+  background-color: var(--accent-gold);
+  color: #121316;
+  border: 1.5px solid #d4a017;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 900;
+  padding: 10px 16px;
+  cursor: pointer;
+  width: 100%;
+  text-align: center;
+  transition: all 0.15s ease;
+}
+
+.btn-confirm-reveal:hover {
+  background-color: #ffd54f;
+  border-color: #ffe082;
+}
+
+.btn-confirm-reveal:active {
+  transform: translateY(1px);
+}
+
+.reveal-confirmed-badge {
+  background-color: #18261e;
+  border: 1px solid #43a047;
+  color: #a5d6a7;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  text-align: center;
+}
+
+
+
+

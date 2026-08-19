@@ -1,0 +1,230 @@
+.action-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.action-modal-container {
+  width: 480px;
+  max-width: 90vw;
+  background-color: #1a1d26;
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+}
+
+.defense-alert { border-color: #d32f2f; }
+.vote-alert { border-color: #c99738; }
+.target-alert { border-color: #ff5252; }
+.cards-alert { border-color: #2979ff; }
+
+.modal-content {
+  padding: 18px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid #2d3345;
+  padding-bottom: 10px;
+}
+
+.modal-alert-icon {
+  font-size: 20px;
+}
+
+.modal-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: #ffffff;
+  flex: 1;
+}
+
+.modal-timer-badge {
+  font-size: 11px;
+  font-weight: 800;
+  background-color: var(--accent-red);
+  color: #ffffff;
+  padding: 2px 8px;
+  border-radius: 12px;
+  animation: pulseGlow 1s infinite;
+}
+
+.modal-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+/* Defense options */
+.defense-section-title {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+
+.modal-cards-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+}
+
+.modal-card-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 8px 12px;
+  text-align: left;
+}
+
+.btn-shield {
+  background-color: #152238;
+  border-color: #1976d2;
+}
+
+.btn-shield:hover {
+  background-color: #1a335a;
+  border-color: #2196f3;
+}
+
+.btn-interrupt {
+  background-color: #2a1538;
+  border-color: #7b1fa2;
+}
+
+.btn-interrupt:hover {
+  background-color: #3f1957;
+  border-color: #ab47bc;
+}
+
+.btn-card-name {
+  font-size: 13px;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.btn-card-desc {
+  font-size: 11px;
+  color: #a0a6b5;
+}
+
+.no-items-warning {
+  padding: 12px;
+  background-color: rgba(211, 47, 47, 0.1);
+  border: 1px dashed var(--accent-red);
+  color: #ff8a80;
+  font-size: 11px;
+  border-radius: var(--radius-sm);
+  text-align: center;
+}
+
+/* Candidate Vote List */
+.candidates-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.candidate-vote-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  font-size: 13px;
+}
+
+.candidate-name {
+  flex: 1;
+  text-align: left;
+  margin-left: 8px;
+}
+
+.vote-action-label {
+  font-size: 11px;
+  color: var(--accent-gold);
+}
+
+/* Submission Card Grid */
+.submission-cards-scroll {
+  max-height: 200px;
+  overflow-y: auto;
+  background-color: #12141a;
+  padding: 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid #2d3345;
+}
+
+.submission-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  gap: 6px;
+}
+
+.submission-card-item {
+  height: 60px;
+  background-color: #202430;
+  border: 1px solid #363c4e;
+  border-radius: var(--radius-sm);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  cursor: pointer;
+  position: relative;
+}
+
+.submission-card-item.selected {
+  border-color: var(--accent-gold);
+  background-color: #36311e;
+}
+
+.sub-card-name {
+  font-size: 11px;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.sub-card-cat {
+  font-size: 9px;
+  color: var(--text-muted);
+}
+
+.sub-check-badge {
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  font-size: 12px;
+  font-weight: 900;
+  color: var(--accent-gold);
+}
+
+.modal-footer-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 6px;
+}
+
+.submit-action-btn {
+  width: 100%;
+  padding: 10px;
+  font-size: 13px;
+}
