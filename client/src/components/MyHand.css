@@ -104,4 +104,42 @@
 .type-malice .card-sub-info { background-color: #1a1a1a; color: #ff5252; }
 .type-malice { background-color: #f2eded; }
 
+/* ── Mobile Responsive Hand Cards (<= 900px) ── */
+@media (max-width: 900px) {
+  .my-hand-container {
+    height: 96px;
+    padding: 3px 6px;
+    gap: 6px;
+    width: 100%;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x proximity;
+  }
+
+  .card-slot {
+    width: 66px;
+    min-width: 66px;
+    height: 88px;
+    scroll-snap-align: start;
+  }
+
+  .card-inner-box {
+    padding: 4px 2px 3px;
+  }
+
+  .card-top-icon {
+    font-size: 20px;
+  }
+
+  .card-slot-name {
+    font-size: 10px;
+    line-height: 1.15;
+  }
+
+  .card-sub-info {
+    font-size: 8.5px;
+    padding: 1px 3px;
+  }
+}
+
+
 

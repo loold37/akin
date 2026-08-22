@@ -74,7 +74,11 @@ interface SocketContextType {
 
 const SocketContext = createContext<SocketContextType | undefined>(undefined);
 
-const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:4000';
+const SERVER_URL =
+  import.meta.env.VITE_SERVER_URL ||
+  (typeof window !== 'undefined'
+    ? `${window.location.protocol}//${window.location.hostname}:4000`
+    : 'http://localhost:4000');
 
 export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [socket, setSocket] = useState<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
@@ -117,7 +121,7 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         setRoomPlayers(newGameState.players);
       }
 
-      // [요청 반영] 카드를 새로 획득했을 때 카드 정보 창(hoveredCard)에 즉시 표시!
+      // [요청 반영] 카드를 새로 획득했을 때 데스크톱(PC) 환경에서만 카드 정보 창(hoveredCard)에 자동 표시
       if (newGameState.myInfo && newGameState.myInfo.hand) {
         const currentCards: Card[] = [
           ...newGameState.myInfo.hand.weapons,
@@ -129,11 +133,15 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         const prevIds = new Set(prevHandCardsRef.current.map((c) => c.id));
         const newlyAddedCards = currentCards.filter((c) => !prevIds.has(c.id));
 
-        if (newlyAddedCards.length > 0 && prevHandCardsRef.current.length > 0) {
-          const latestCard = newlyAddedCards[newlyAddedCards.length - 1];
-          setHoveredCard(latestCard);
-        } else if (prevHandCardsRef.current.length === 0 && currentCards.length > 0) {
-          setHoveredCard(currentCards[0]);
+        const isDesktop = typeof window !== 'undefined' && window.innerWidth > 900;
+
+        if (isDesktop) {
+          if (newlyAddedCards.length > 0 && prevHandCardsRef.current.length > 0) {
+            const latestCard = newlyAddedCards[newlyAddedCards.length - 1];
+            setHoveredCard(latestCard);
+          } else if (prevHandCardsRef.current.length === 0 && currentCards.length > 0) {
+            setHoveredCard(currentCards[0]);
+          }
         }
         prevHandCardsRef.current = currentCards;
       }

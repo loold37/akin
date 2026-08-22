@@ -44,9 +44,15 @@ export const EventActionBoard: React.FC<EventActionBoardProps> = ({
     interruptAction,
     submitGift,
     endTurn,
-    setHoveredCard,
+    setHoveredCard: setHoveredCardRaw,
     socket,
   } = useSocket();
+
+  const setHoveredCard = (card: Card | null) => {
+    if (typeof window !== 'undefined' && window.innerWidth > 900) {
+      setHoveredCardRaw(card);
+    }
+  };
 
   const [selectedCardIds, setSelectedCardIds] = useState<string[]>([]);
   const [useDictatorship, setUseDictatorship] = useState<boolean>(false);

@@ -102,3 +102,90 @@
   font-weight: 900;
   border-radius: var(--radius-sm);
 }
+
+/* ── Mobile Responsive Game Over Modal (<= 900px) ── */
+@media (max-width: 900px) {
+  .game-over-overlay {
+    padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+    align-items: center;
+    box-sizing: border-box;
+  }
+
+  .game-over-modal {
+    width: 100%;
+    max-width: 100%;
+    max-height: calc(100dvh - 24px);
+    padding: 14px 12px;
+    gap: 10px;
+    box-sizing: border-box;
+  }
+
+  .game-over-header {
+    gap: 8px;
+    padding-bottom: 8px;
+  }
+
+  .game-over-icon {
+    font-size: 22px;
+  }
+
+  .game-over-title {
+    font-size: 15px;
+  }
+
+  .scores-table-container {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .scores-table-header {
+    padding: 6px 8px;
+    font-size: 10px;
+  }
+
+  .scores-table-body {
+    max-height: none;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  .score-row {
+    padding: 8px 8px;
+    font-size: 11px;
+    gap: 4px;
+  }
+
+  .col-rank {
+    width: 44px;
+    font-size: 11px;
+    font-weight: 800;
+  }
+
+  .col-name {
+    width: 78px;
+    font-size: 11px;
+    font-weight: 800;
+  }
+
+  .col-reason {
+    flex: 1;
+    font-size: 10px;
+    line-height: 1.25;
+    word-break: keep-all;
+  }
+
+  .col-score {
+    width: 48px;
+    font-size: 11.5px;
+    font-weight: 900;
+  }
+
+  .restart-btn {
+    padding: 10px;
+    font-size: 13px;
+  }
+}
+

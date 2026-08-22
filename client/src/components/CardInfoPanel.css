@@ -2,6 +2,8 @@
   width: 240px;
   min-width: 240px;
   height: 120px;
+  min-height: 120px;
+  max-height: 120px;
   background-color: #1a1c24;
   border: 1.5px solid #2d3140;
   border-radius: var(--radius-sm);

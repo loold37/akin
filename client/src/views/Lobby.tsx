@@ -17,6 +17,29 @@ export const Lobby: React.FC = () => {
 
   const [inputCode, setInputCode] = useState('');
   const [inputName, setInputName] = useState('');
+  const [isChatFocused, setIsChatFocused] = useState(false);
+
+  // ── [요청 반영] 모바일(안드로이드/iOS) 가상 키보드 뷰포트 높이 실시간 추적 ──
+  React.useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+
+    const updateViewportHeight = () => {
+      document.documentElement.style.setProperty('--visual-viewport-height', `${vv.height}px`);
+      if (window.scrollY !== 0) {
+        window.scrollTo(0, 0);
+      }
+    };
+
+    vv.addEventListener('resize', updateViewportHeight);
+    vv.addEventListener('scroll', updateViewportHeight);
+    updateViewportHeight();
+
+    return () => {
+      vv.removeEventListener('resize', updateViewportHeight);
+      vv.removeEventListener('scroll', updateViewportHeight);
+    };
+  }, []);
 
   const handleJoin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,7 +50,7 @@ export const Lobby: React.FC = () => {
   const isHost = roomPlayers.length > 0 && roomPlayers[0].id === socket?.id;
 
   return (
-    <div className="lobby-wrapper">
+    <div className={`lobby-wrapper ${isChatFocused ? 'keyboard-active' : ''}`}>
       {!roomCode ? (
         /* 방 참가 폼 (단일 카드 중앙 정렬) */
         <div className="lobby-card">
@@ -143,7 +166,7 @@ export const Lobby: React.FC = () => {
           </div>
 
           <div className="lobby-chat-panel">
-            <ChatBoard />
+            <ChatBoard onFocusChange={setIsChatFocused} />
           </div>
         </div>
       )}

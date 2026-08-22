@@ -139,13 +139,17 @@
   background-color: #171820;
   border-top: 1px solid var(--border-color);
   flex-shrink: 0;
+  transition: bottom 0.15s ease-out;
 }
 
 .chat-input-box {
   flex: 1;
   padding: 6px 8px;
-  font-size: 12px;
+  font-size: 13px;
   border-radius: var(--radius-sm);
+  background-color: #0f1014;
+  border: 1px solid #282f40;
+  color: var(--text-primary);
 }
 
 .chat-send-btn {
@@ -153,4 +157,100 @@
   font-size: 12px;
   font-weight: 700;
   border-radius: var(--radius-sm);
+  background-color: #282b35;
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+  white-space: nowrap;
 }
+
+.chat-dismiss-btn {
+  display: none;
+}
+
+/* ── Mobile Floating Keyboard Mode (배경 흐림/딤 제거, 선명한 게임 화면 유지) ── */
+@media (max-width: 900px) {
+  .chat-input-box {
+    font-size: 16px !important; /* iOS Safari 탭 시 자동 화면 확대(Auto-zoom) 방지 */
+  }
+
+  .chat-input-form.is-mobile-floating {
+    position: fixed !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0;
+    z-index: 10000 !important;
+    padding: 8px 10px !important;
+    padding-bottom: max(8px, env(safe-area-inset-bottom)) !important;
+    background-color: #161820 !important;
+    border-top: 1.5px solid #2979ff !important;
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.75) !important;
+    display: flex !important;
+    gap: 6px !important;
+    align-items: center !important;
+    animation: slideUpFloating 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  /* GameBoard 내의 모바일 하단 채팅바는 flex 정적 레이아웃으로 키보드 위에 완벽 정렬 */
+  .mobile-bottom-chat-input.is-mobile-floating {
+    position: static !important;
+    box-shadow: none !important;
+    animation: none !important;
+    padding: 4px 6px !important;
+  }
+
+  .chat-input-form.is-mobile-floating .chat-input-box {
+    font-size: 16px !important; /* iOS 자동 줌 방지 */
+    padding: 8px 12px !important;
+    border-color: #2979ff !important;
+    background-color: #0c0d12 !important;
+    color: #ffffff !important;
+    border-radius: var(--radius-sm) !important;
+  }
+
+  .chat-dismiss-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    font-size: 14px;
+    font-weight: 800;
+    color: #ff8a80;
+    background-color: #2a1b1d;
+    border: 1px solid #852222;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.15s ease;
+  }
+
+  .chat-dismiss-btn:active {
+    background-color: #d32f2f;
+    color: #ffffff;
+  }
+
+  .chat-input-form.is-mobile-floating .chat-send-btn {
+    padding: 8px 14px !important;
+    font-size: 13px !important;
+    background-color: #2979ff !important;
+    color: #ffffff !important;
+    border: 1px solid #2979ff !important;
+    font-weight: 800 !important;
+    flex-shrink: 0 !important;
+    border-radius: var(--radius-sm) !important;
+  }
+}
+
+@keyframes slideUpFloating {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+

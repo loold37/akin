@@ -182,8 +182,8 @@
 .target-select-overlay {
   position: absolute;
   inset: 0;
-  background: rgba(211, 47, 47, 0.2);
-  border: 1px dashed var(--accent-red);
+  background: rgba(211, 47, 47, 0.18);
+  border: 1.5px dashed var(--accent-red);
   border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
@@ -191,38 +191,160 @@
   font-size: 12px;
   font-weight: 900;
   color: #ffffff;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
+  pointer-events: none;
+  animation: pulseGlow 1s infinite alternate;
 }
 
 @media (max-width: 900px) {
   .player-ring-container {
-    padding: 2px 4px;
+    padding: 0;
+    margin: 0;
     overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .player-ring-container::-webkit-scrollbar {
+    display: none;
   }
 
   .player-ring-grid {
     flex-wrap: nowrap;
     justify-content: flex-start;
-    gap: 6px;
+    gap: 5px;
+    scroll-snap-type: x mandatory;
+    padding: 0;
+    margin: 0;
   }
 
   .player-card {
-    width: 120px;
-    min-width: 120px;
-    height: 56px;
-    padding: 4px 6px;
-    gap: 6px;
+    width: 106px;
+    min-width: 106px;
+    height: 38px;
+    min-height: 38px;
+    max-height: 38px;
+    padding: 2px 5px;
+    gap: 5px;
+    box-sizing: border-box;
+    scroll-snap-align: start;
+    touch-action: manipulation;
+    user-select: none;
+    transition: transform 0.1s ease, border-color 0.15s ease;
+    border-radius: var(--radius-sm);
+  }
+
+  .player-card:active {
+    transform: scale(0.96);
+  }
+
+  .player-card.selectable {
+    border: 1.5px solid #ff5252 !important;
+    box-shadow: 0 0 8px rgba(255, 82, 82, 0.45);
+    cursor: pointer;
+  }
+
+  .player-card.active-turn {
+    border: 1.5px solid var(--accent-gold) !important;
+    box-shadow: 0 0 6px rgba(255, 213, 79, 0.4);
+  }
+
+  .player-avatar-box {
+    position: relative;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .player-avatar-icon {
-    font-size: 18px;
+    font-size: 16px;
+    line-height: 1;
+  }
+
+  .turn-indicator-badge {
+    position: absolute;
+    bottom: -3px;
+    right: -3px;
+    top: auto;
+    font-size: 6.5px;
+    font-weight: 900;
+    padding: 0 2px;
+    border-radius: 2px;
+    letter-spacing: 0;
+    background-color: var(--accent-gold);
+    color: #121316;
+    line-height: 1.1;
+  }
+
+  .player-info-content {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 1px;
+    overflow: hidden;
+  }
+
+  .player-name-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2px;
+    line-height: 1.15;
   }
 
   .player-name {
-    font-size: 11px;
+    font-size: 10.5px;
+    font-weight: 800;
+    line-height: 1.15;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
-  .hand-stat-badge {
-    font-size: 9px;
+  .badge-cluster {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+  }
+
+  .fate-badge {
+    font-size: 8px;
+    padding: 0 2px;
+  }
+
+  .silence-badge {
+    font-size: 7.5px;
+    padding: 0 2px;
+  }
+
+  .bid-badge {
+    font-size: 7.5px;
+    padding: 0 2px;
+  }
+
+  .player-status-row {
+    font-size: 8.5px;
+    line-height: 1.1;
+    color: var(--text-secondary);
+    white-space: nowrap;
+  }
+
+  .status-dead-label {
+    font-size: 8.5px;
+    font-weight: 800;
+  }
+
+  .card-count-label {
+    font-size: 8.5px;
+  }
+
+  .target-select-overlay {
+    font-size: 10px;
+    letter-spacing: 0;
   }
 }
+

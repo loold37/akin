@@ -2,11 +2,19 @@ import express from 'express';
 import http from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
-import { ClientToServerEvents, ServerToClientEvents, PublicPlayerInfo, Card } from '../../shared/types';
+import { ClientToServerEvents, ServerToClientEvents, PublicPlayerInfo, Card, PlayerScore } from '../../shared/types';
 import { GameRoom } from './GameRoom';
 
 const app = express();
 app.use(cors());
+
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', uptime: process.uptime(), timestamp: new Date().toISOString() });
+});
+
+app.get('/', (req, res) => {
+  res.send('악인 온라인 (Akin Online) 서버가 정상 실행 중입니다.');
+});
 
 const server = http.createServer(app);
 const io = new Server<ClientToServerEvents, ServerToClientEvents>(server, {
@@ -18,6 +26,49 @@ const io = new Server<ClientToServerEvents, ServerToClientEvents>(server, {
 
 const rooms: Map<string, GameRoom> = new Map();
 
+function broadcastGameOver(
+  ioInstance: Server<ClientToServerEvents, ServerToClientEvents>,
+  roomCode: string,
+  room: GameRoom,
+  scores: PlayerScore[],
+  reasonMsg?: string
+) {
+  if (reasonMsg) {
+    ioInstance.to(roomCode).emit('action_result', reasonMsg);
+  }
+
+  // 동점자 공동 순위 계산
+  const sortedScores = [...scores].sort((a, b) => b.score - a.score);
+  let currentRank = 1;
+  const rankedScores = sortedScores.map((s, idx) => {
+    if (idx > 0 && s.score < sortedScores[idx - 1].score) {
+      currentRank = idx + 1;
+    }
+    return { ...s, rank: currentRank };
+  });
+
+  ioInstance.to(roomCode).emit('action_result', '🏆 ── [게임 종료 & 승패 정산 결과] ──');
+  for (const s of rankedScores) {
+    const medal =
+      s.rank === 1 && s.score > 0
+        ? '🥇'
+        : s.rank === 2 && s.score > 0
+        ? '🥈'
+        : s.rank === 3 && s.score > 0
+        ? '🥉'
+        : '💀';
+    const scoreText = s.score > 0 ? `+${s.score}점` : '0점';
+    ioInstance.to(roomCode).emit(
+      'action_result',
+      `${medal} #${s.rank} ${s.name}: ${scoreText} (${s.reason})`
+    );
+  }
+
+  ioInstance.to(roomCode).emit('game_over', scores);
+  emitGameStateToAll(roomCode, room);
+  emitRoomState(roomCode, room);
+}
+
 function emitGameStateToAll(roomCode: string, room: GameRoom): void {
   for (const player of room.players) {
     const sanitized = room.getSanitizedGameState(player.id);
@@ -26,7 +77,7 @@ function emitGameStateToAll(roomCode: string, room: GameRoom): void {
 }
 
 function emitRoomState(roomCode: string, room: GameRoom): void {
-  const publicPlayers: PublicPlayerInfo[] = room.players.map(p => ({
+  const publicPlayers: PublicPlayerInfo[] = room.players.map((p) => ({
     id: p.id,
     name: p.name,
     isAlive: p.isAlive,
@@ -51,10 +102,7 @@ io.on('connection', (socket) => {
     if (!room) {
       room = new GameRoom(roomCode);
       room.onGameOver = (scores) => {
-        io.to(roomCode).emit('action_result', '⚔️ 최후의 1인이 결정되었습니다!');
-        io.to(roomCode).emit('game_over', scores);
-        emitGameStateToAll(roomCode, room!);
-        emitRoomState(roomCode, room!);
+        broadcastGameOver(io, roomCode, room!, scores, '⚔️ 최후의 1인이 결정되어 게임이 종료되었습니다!');
       };
       room.onActionRequest = (action) => {
         emitGameStateToAll(roomCode, room!);
@@ -189,11 +237,11 @@ const getCategoryKoreanName = (card: any): string => {
     }
 
     if (result.deckEmpty && !result.finalCard) {
-      io.to(roomCode).emit('action_result', '🏰 던전의 끝에 도달했습니다! 탈출 성공!');
-      
       if (room.phase === 'ENDED') {
-         const scores = room.endRound();
-         io.to(roomCode).emit('game_over', scores);
+        const scores = room.endRound();
+        broadcastGameOver(io, roomCode, room, scores, '🏰 던전의 끝에 도달했습니다! 탈출 성공!');
+      } else {
+        io.to(roomCode).emit('action_result', '🏰 던전의 끝에 도달했습니다! 탈출 성공!');
       }
     }
 
@@ -1358,7 +1406,7 @@ const getCategoryKoreanName = (card: any): string => {
   });
 });
 
-const PORT = process.env.PORT || 4000;
-server.listen(PORT, () => {
+const PORT = Number(process.env.PORT) || 4000;
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 악인 온라인 서버 running on port ${PORT}`);
 });
