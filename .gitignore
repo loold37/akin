@@ -37,3 +37,6 @@ lerna-debug.log*
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Test harness reports
+server/tests/reports/

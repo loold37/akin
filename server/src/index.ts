@@ -26,6 +26,39 @@ const io = new Server<ClientToServerEvents, ServerToClientEvents>(server, {
 
 const rooms: Map<string, GameRoom> = new Map();
 
+// ── 입력 검증 ───────────────────────────────────────────────────────
+// socket.io는 리스너를 process.nextTick 안에서 실행하므로, 핸들러에서 던진 예외는 프로세스 전체(모든 방)를 종료시킵니다.
+// 소켓으로 들어온 값은 쓰기 전에 형식을 확인합니다.
+const isString = (v: unknown): v is string => typeof v === 'string';
+const isStringArray = (v: unknown): v is string[] => Array.isArray(v) && v.every(isString);
+
+// 방 코드: 클라이언트 입력칸은 최대 10자. 대문자 변환 시 한 글자가 최대 3글자로 늘어날 수 있어(예: 'ﬃ' → 'FFI') 30자까지 허용합니다.
+const MAX_ROOM_CODE_LENGTH = 30;
+
+// 플레이어 한 명에게만 가야 하는 데이터(자기 패, 개인 요청·안내)는 그 소켓에 직접 보냅니다.
+// io.to(id)는 'id'라는 이름의 방 전체로 가므로, 같은 이름으로 join한 다른 소켓도 받게 됩니다.
+function emitToPlayer<E extends keyof ServerToClientEvents>(
+  playerId: string | null | undefined,
+  event: E,
+  ...args: Parameters<ServerToClientEvents[E]>
+): void {
+  if (!playerId) return;
+  io.sockets.sockets.get(playerId)?.emit(event, ...args);
+}
+
+// 검증을 빠져나간 예외가 있더라도 서버가 죽지 않도록 이 소켓의 모든 리스너를 try/catch로 감쌉니다.
+function guardSocketHandlers(socket: { on: (...args: any[]) => any }): void {
+  const on = socket.on.bind(socket);
+  socket.on = (event: string, listener: (...args: any[]) => void) =>
+    on(event, (...args: any[]) => {
+      try {
+        listener(...args);
+      } catch (err) {
+        console.error(`[핸들러 오류] ${event}:`, err);
+      }
+    });
+}
+
 function broadcastGameOver(
   ioInstance: Server<ClientToServerEvents, ServerToClientEvents>,
   roomCode: string,
@@ -72,7 +105,7 @@ function broadcastGameOver(
 function emitGameStateToAll(roomCode: string, room: GameRoom): void {
   for (const player of room.players) {
     const sanitized = room.getSanitizedGameState(player.id);
-    io.to(player.id).emit('game_state_update', sanitized);
+    emitToPlayer(player.id, 'game_state_update', sanitized);
   }
 }
 
@@ -96,8 +129,13 @@ function emitRoomState(roomCode: string, room: GameRoom): void {
 
 io.on('connection', (socket) => {
   console.log(`[Connect] ${socket.id}`);
+  guardSocketHandlers(socket);
 
   socket.on('join_room', (roomCode, playerName) => {
+    if (!isString(roomCode) || !isString(playerName)) return;
+    // 빈 코드, 너무 긴 코드, 접속 중인 소켓 id와 같은 코드는 거부합니다.
+    // (소켓 id와 같은 이름의 방에 들어가면 그 플레이어의 개인 채널로 가는 방송을 함께 받게 됨)
+    if (roomCode.trim() === '' || roomCode.length > MAX_ROOM_CODE_LENGTH || io.sockets.sockets.has(roomCode)) return;
     let room = rooms.get(roomCode);
     if (!room) {
       room = new GameRoom(roomCode);
@@ -117,21 +155,22 @@ io.on('connection', (socket) => {
           let candidates = room!.getAlivePlayers().map(p => p.id);
           if (action.eventName === '마육검') {
             candidates = candidates.filter(id => id !== action.initiatorId);
-            io.to(action.initiatorId || '').emit('request_mayuk_choice', '마육검', candidates);
+            emitToPlayer(action.initiatorId, 'request_mayuk_choice', '마육검', candidates);
           } else if (action.eventName === '뒤바뀐 영혼' || action.eventName === '선물' || action.eventName === '피바라기') {
             candidates = candidates.filter(id => id !== action.initiatorId);
-            io.to(action.initiatorId || '').emit('request_target', action.eventName || '', candidates);
+            emitToPlayer(action.initiatorId, 'request_target', action.eventName || '', candidates);
           } else if (action.eventName === '카르마' || action.eventName === '폴터가이스트') {
             const deadPlayers = room!.players.filter(p => !p.isAlive);
             for (const dp of deadPlayers) {
-              io.to(dp.id).emit('request_target', action.eventName || '', candidates);
+              emitToPlayer(dp.id, 'request_target', action.eventName || '', candidates);
             }
           } else {
-            io.to(action.initiatorId || '').emit('request_target', action.eventName || '', candidates);
+            emitToPlayer(action.initiatorId, 'request_target', action.eventName || '', candidates);
           }
         } else if (action.type === 'CARD_SUBMISSION') {
           if (action.eventName === '예언') {
-            io.to(action.initiatorId || '').emit(
+            emitToPlayer(
+              action.initiatorId,
               'request_prophecy',
               '예언',
               (action as any).prophecyCards || [],
@@ -159,7 +198,7 @@ io.on('connection', (socket) => {
         io.to(roomCode).emit('action_result', msg);
       };
       room.onPrivateMessage = (playerId, msg) => {
-        io.to(playerId).emit('action_result', msg);
+        emitToPlayer(playerId, 'action_result', msg);
       };
       rooms.set(roomCode, room);
     }
@@ -230,7 +269,8 @@ const getCategoryKoreanName = (card: any): string => {
       // 전체 알림: 누구누구가 카드를 뽑음
       io.to(roomCode).emit('action_result', `🎴 ${name}님이 카드를 1장 뽑았습니다.`);
       // 당사자 알림: 뽑은 카드의 이름과 상세 정보 (한글 카테고리)
-      io.to(socketId).emit(
+      emitToPlayer(
+        socketId,
         'action_result',
         `📥 [${result.finalCard.name}] (${getCategoryKoreanName(result.finalCard)}) 카드를 획득했습니다!`
       );
@@ -266,6 +306,7 @@ const getCategoryKoreanName = (card: any): string => {
   });
 
   socket.on('send_chat', (roomCode, message) => {
+    if (!isString(message)) return;
     const room = rooms.get(roomCode);
     if (!room) return;
     
@@ -297,6 +338,7 @@ const getCategoryKoreanName = (card: any): string => {
   });
 
   socket.on('submit_vote', (roomCode, targetId, useDictatorship) => {
+    if (!isString(targetId)) return;
     const room = rooms.get(roomCode);
     if (!room || room.phase !== 'RESOLVING_EVENT' || !room.pendingAction) return;
     if (room.pendingAction.type !== 'VOTE') return;
@@ -342,6 +384,7 @@ const getCategoryKoreanName = (card: any): string => {
   });
 
   socket.on('kill_bait_monster', (roomCode, cardId) => {
+    if (!isString(cardId)) return;
     const room = rooms.get(roomCode);
     if (!room || room.phase !== 'RESOLVING_EVENT' || !room.pendingAction) return;
     if (room.pendingAction.eventName !== '미끼') return;
@@ -375,6 +418,7 @@ const getCategoryKoreanName = (card: any): string => {
   });
 
   socket.on('submit_prophecy', (roomCode: string, cardIds: string[]) => {
+    if (!isStringArray(cardIds)) return;
     const room = rooms.get(roomCode);
     if (!room || room.phase !== 'RESOLVING_EVENT' || !room.pendingAction) return;
     if (room.pendingAction.eventName !== '예언') return;
@@ -413,6 +457,7 @@ const getCategoryKoreanName = (card: any): string => {
   });
 
   socket.on('submit_gift', (roomCode, cardId, targetId) => {
+    if (!isString(cardId) || !isString(targetId)) return;
     const room = rooms.get(roomCode);
     if (!room || room.phase !== 'RESOLVING_EVENT' || !room.pendingAction) return;
     if (room.pendingAction.eventName !== '선물') return;
@@ -438,6 +483,7 @@ const getCategoryKoreanName = (card: any): string => {
   });
 
   socket.on('submit_target', (roomCode, targetId) => {
+    if (!isString(targetId)) return;
     const room = rooms.get(roomCode);
     if (!room || room.phase !== 'RESOLVING_EVENT' || !room.pendingAction) return;
     if (room.pendingAction.type !== 'TARGET_SELECTION') return;
@@ -469,6 +515,8 @@ const getCategoryKoreanName = (card: any): string => {
   });
 
   socket.on('submit_transmutation', (roomCode, targetDeadPlayerId, cardIds) => {
+    if (targetDeadPlayerId != null && !isString(targetDeadPlayerId)) return;
+    if (cardIds != null && !isStringArray(cardIds)) return;
     const room = rooms.get(roomCode);
     if (!room || room.phase !== 'RESOLVING_EVENT' || !room.pendingAction) return;
     if (room.pendingAction.eventName !== '인체 연성') return;
@@ -522,6 +570,7 @@ const getCategoryKoreanName = (card: any): string => {
   });
 
   socket.on('submit_cards', (roomCode, cardIds) => {
+    if (!isStringArray(cardIds)) return;
     const room = rooms.get(roomCode);
     if (!room || room.phase !== 'RESOLVING_EVENT' || !room.pendingAction) return;
     if (room.pendingAction.type !== 'CARD_SUBMISSION') return;
@@ -796,6 +845,7 @@ const getCategoryKoreanName = (card: any): string => {
   });
 
   socket.on('use_mayuk_sword_now', (roomCode, targetId) => {
+    if (!isString(targetId)) return;
     const room = rooms.get(roomCode);
     if (!room || room.phase !== 'RESOLVING_EVENT' || !room.pendingAction) return;
     if (room.pendingAction.eventName !== '마육검' || room.pendingAction.type !== 'TARGET_SELECTION') return;
@@ -901,6 +951,8 @@ const getCategoryKoreanName = (card: any): string => {
   socket.on('return_to_lobby', (roomCode) => {
     const room = rooms.get(roomCode);
     if (!room) return;
+    // 끝난 게임에서, 방 참가자만 대기실로 되돌릴 수 있습니다.
+    if (room.phase !== 'ENDED' || !room.getPlayerById(socket.id)) return;
 
     room.resetToLobby();
     emitGameStateToAll(roomCode, room);
@@ -909,6 +961,7 @@ const getCategoryKoreanName = (card: any): string => {
   });
 
   socket.on('interrupt_action', (roomCode, cardId, targetId) => {
+    if (!isString(cardId) || (targetId != null && !isString(targetId))) return;
     const room = rooms.get(roomCode);
     if (!room) return;
     const player = room.getPlayerById(socket.id);
@@ -933,15 +986,7 @@ const getCategoryKoreanName = (card: any): string => {
       if (room.pendingAction?.timer) clearTimeout(room.pendingAction.timer);
 
       // 이벤트 취소 시, 이미 제출된 카드가 있다면 주인에게 돌려줌
-      if (room.pendingAction?.type === 'CARD_SUBMISSION') {
-        for (const [pId, cards] of Object.entries(room.pendingAction.responses)) {
-          const p = room.getPlayerById(pId);
-          if (p) {
-            (cards as any[]).forEach(c => room.addCardToHand(p, c));
-            room.recalculateMalice(p);
-          }
-        }
-      }
+      room.refundPendingSubmissions();
 
       room.returnToMainPhase();
       
@@ -1023,6 +1068,7 @@ const getCategoryKoreanName = (card: any): string => {
   });
   
   socket.on('play_item', (roomCode, cardId, targetIds) => {
+    if (!isString(cardId) || (targetIds != null && !isStringArray(targetIds))) return;
     const room = rooms.get(roomCode);
     if (!room) return;
 
@@ -1052,6 +1098,7 @@ const getCategoryKoreanName = (card: any): string => {
   });
 
   socket.on('cut_fate_link', (roomCode, weaponCardId) => {
+    if (!isString(weaponCardId)) return;
     const room = rooms.get(roomCode);
     if (!room) return;
 
@@ -1085,6 +1132,7 @@ const getCategoryKoreanName = (card: any): string => {
     emitGameStateToAll(roomCode, room);
   });
   socket.on('play_tool', (roomCode, cardId, targetId) => {
+    if (!isString(cardId) || (targetId != null && !isString(targetId))) return;
     const room = rooms.get(roomCode);
     if (!room) return;
 
@@ -1101,8 +1149,9 @@ const getCategoryKoreanName = (card: any): string => {
     }
     
     if (weapon) {
+      // 난투 중에도 MAIN 단계에서만 공격할 수 있습니다 (게임 종료 후 공격 방지).
+      if (room.phase !== 'MAIN') return;
       if (!room.freeForAll) {
-        if (room.phase !== 'MAIN') return;
         if (room.currentTurnPlayerId !== socket.id) return;
         if (player.hasUsedWeaponThisTurn) return;
       }
@@ -1120,6 +1169,8 @@ const getCategoryKoreanName = (card: any): string => {
         player.hasUsedWeaponThisTurn = true;
       }
 
+      // 방어 대기 동안 차례 타이머를 멈춰, 대기 중 마감이 지나도 방어가 끝나면 남은 시간으로 다시 돌게 합니다.
+      room.pauseTurnTimer();
       room.phase = 'WAITING_FOR_DEFENSE';
       const action = {
         type: 'DEFENSE' as const,
@@ -1256,6 +1307,7 @@ const getCategoryKoreanName = (card: any): string => {
   });
 
   socket.on('play_shield', (roomCode, cardId, targetId) => {
+    if (!isString(cardId)) return;
     const room = rooms.get(roomCode);
     if (!room || room.phase !== 'WAITING_FOR_DEFENSE' || !room.pendingAction) return;
     
@@ -1410,3 +1462,6 @@ const PORT = Number(process.env.PORT) || 4000;
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 악인 온라인 서버 running on port ${PORT}`);
 });
+
+// 테스트 하네스(tests/)가 같은 프로세스에서 방 상태를 검사할 수 있도록 노출합니다.
+export { app, io, server, rooms };

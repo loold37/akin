@@ -252,6 +252,14 @@ export class GameRoom {
       if (emitMsg) emitMsg('👻 누군가의 비명 소리와 함께 눈 없는 괴물이 물러갔습니다...');
     }
 
+    // 생존자가 1명 이하가 되었다면 대기 중인 투표·제출을 처리하기 전에 게임을 먼저 끝냅니다.
+    // (먼저 처리하면 남아 있던 표가 마지막 생존자를 처형하는 등 결과가 뒤집힙니다.)
+    if (this.phase !== 'ENDED' && this.checkLastSurvivor()) {
+      const scores = this.handleLastSurvivor();
+      if (this.onGameOver) this.onGameOver(scores);
+      return;
+    }
+
     if (this.pendingAction && !this.isResolvingAction) {
       const currentAlive = this.getAlivePlayers().length;
       if (this.pendingAction.type === 'DEFENSE') {
@@ -266,7 +274,7 @@ export class GameRoom {
       }
     }
 
-    // 모든 사망 처리가 끝난 후, 생존자가 1명 이하면 즉시 게임 종료 판정
+    // 대기 액션 처리로 생존자가 1명 이하가 되었을 수 있으므로 다시 확인합니다.
     if (this.phase !== 'ENDED' && this.checkLastSurvivor()) {
       const scores = this.handleLastSurvivor();
       if (this.onGameOver) this.onGameOver(scores);
@@ -1567,13 +1575,15 @@ export class GameRoom {
   }
 
   private processRouletteVictims(victims: Array<{ player: Player; weapon: ToolCard }>, eventCard: EventCard): void {
-    if (victims.length === 0) {
+    // 앞 피격자 처리로 게임이 끝났거나 이미 죽은 피격자는 건너뜁니다.
+    const remaining = this.phase === 'ENDED' ? [] : victims.filter((v) => v.player.isAlive);
+    if (remaining.length === 0) {
       this.returnToMainPhase();
       return;
     }
 
-    const current = victims[0];
-    const remainingVictims = victims.slice(1);
+    const current = remaining[0];
+    const remainingVictims = remaining.slice(1);
 
     this.setupDefenseAgainstTarget(null, current.player, eventCard);
 
@@ -1583,7 +1593,7 @@ export class GameRoom {
       const originalResolve = this.pendingAction.resolve;
       this.pendingAction.resolve = () => {
         originalResolve();
-        if (remainingVictims.length > 0) {
+        if (remainingVictims.length > 0 && this.phase !== 'ENDED') {
           this.processRouletteVictims(remainingVictims, eventCard);
         }
       };
@@ -1750,6 +1760,7 @@ export class GameRoom {
   }
 
   public handleLastSurvivor(): PlayerScore[] {
+    this.stopGameEffects();
     this.phase = 'ENDED';
     this.currentTurnPlayerId = null;
     this.updatePlayerTurns();
@@ -1757,10 +1768,42 @@ export class GameRoom {
   }
 
   public endRound(): PlayerScore[] {
+    this.stopGameEffects();
     this.phase = 'ENDED';
     this.currentTurnPlayerId = null;
     this.updatePlayerTurns();
     return this.calculateScores(false);
+  }
+
+  // 게임이 끝나면 대기 중인 액션·타이머·지속 효과를 모두 정리해, 종료 후 투표·연쇄 공격·난투가 게임을 다시 움직이지 않게 합니다.
+  private stopGameEffects(): void {
+    if (this.pendingAction?.timer) clearTimeout(this.pendingAction.timer);
+    // 마육검 입찰처럼 제출 중이던 카드를 정산 전에 돌려줘야 성향(선인/악인)이 올바르게 계산됩니다.
+    this.refundPendingSubmissions();
+    this.pendingAction = null;
+    this.activeEvent = null;
+    if (this.turnTimer) clearTimeout(this.turnTimer);
+    this.turnTimer = null;
+    this.turnDeadline = null;
+    this.isTurnTimerPaused = false;
+    this.freeForAll = false;
+    this.silenceMode = false;
+    this.linkedPlayers = null;
+  }
+
+  // 취소되거나 게임이 끝나 처리되지 못한 카드 제출 이벤트의 제출 카드를 주인에게 돌려줍니다.
+  // (패 공개 확인은 true, 무장해제/면죄부는 이미 버린 카드의 id 문자열이 응답이므로 카드 객체만 돌려줌)
+  public refundPendingSubmissions(): void {
+    const action = this.pendingAction;
+    if (!action || action.type !== 'CARD_SUBMISSION') return;
+    for (const [playerId, cards] of Object.entries(action.responses)) {
+      const player = this.getPlayerById(playerId);
+      if (!player || !Array.isArray(cards)) continue;
+      const returned = cards.filter((c: any) => c && typeof c === 'object' && typeof c.category === 'string') as Card[];
+      returned.forEach((c) => this.addCardToHand(player, c));
+      if (returned.length > 0) this.recalculateMalice(player);
+    }
+    action.responses = {};
   }
 
   private calculateScores(isLastSurvivor: boolean): PlayerScore[] {
