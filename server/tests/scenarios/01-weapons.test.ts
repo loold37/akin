@@ -755,19 +755,20 @@ scenario('누군가의 뼈: 악의로 취급되므로 뼈를 든 채로는 엑�
   t.expectEq(g.hand(0), ['누군가의 뼈'], '뼈는 그대로');
 });
 
-scenario('누군가의 뼈: "악의를 제외한 카드"를 요구하는 인체 연성에 제물로 낼 수 있다', {
+scenario('누군가의 뼈: "악의를 제외한 카드"를 요구하는 인체 연성에 다른 도구와 함께 제물로 낼 수 있다', {
   card: '누군가의 뼈',
   rule: `${R_BONE} / 인체 연성: 모든 생존자가 힘을 합쳐 참가자 수만큼 악의를 제외한 카드를 버리면 죽은 자를 한 명 부활시킵니다.`,
 }, async (t) => {
-  const g = await t.game({ players: 3, hands: { 0: ['누군가의 뼈'] }, deck: ['인체 연성'], dead: [2] });
+  // 누군가의 뼈는 단독으로 낼 수 없으므로(카드 규칙) 다른 도구와 섞어서 낸다.
+  const g = await t.game({ players: 3, hands: { 0: ['누군가의 뼈', '코인'] }, deck: ['인체 연성'], dead: [2] });
   await drawEvent(g, '인체 연성');
-  g.c(0).act('submit_cards', [g.cardId(0, '누군가의 뼈')]);
+  g.c(0).act('submit_cards', [g.cardId(0, '누군가의 뼈'), g.cardId(0, '코인')]);
   await flush(g, 0);
   t.expectEq(g.hand(0), [], '뼈가 제물로 접수되어 패에서 빠짐');
   t.expectEq(g.p(0).currentMalice, 0, '제출 중 악의 0');
-  g.c(1).act('submit_cards', []); // 생존자 2명인데 1장뿐 → 실패, 반환
+  g.c(1).act('submit_cards', []); // 참가자 3명인데 2장뿐 → 실패, 반환
   await g.waitPhase('MAIN');
-  t.expectEq(g.hand(0), ['누군가의 뼈'], '실패 시 뼈 반환');
+  t.expectEq(g.hand(0).sort(), ['누군가의 뼈', '코인'].sort(), '실패 시 뼈와 코인 반환');
   t.expectEq(g.p(0).currentMalice, 1, '반환 후 악의 1');
 });
 

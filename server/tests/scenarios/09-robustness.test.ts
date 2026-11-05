@@ -268,10 +268,10 @@ const PH = {
   }),
   VOTE_TRANS: phase(
     '투표: 인체 연성 부활 대상(나래 투표 완료, 가람이 마지막)',
-    { players: 3, dead: [2], hands: { 0: ['코인', '긴급탈출키트'], 1: ['코인'] }, deck: ['인체 연성'] },
+    { players: 3, dead: [2], hands: { 0: ['코인', '성배', '긴급탈출키트'], 1: ['코인'] }, deck: ['인체 연성'] },
     async (g) => {
       await drawTo(g, 0, () => pa(g)?.eventName === '인체 연성' && pa(g)?.type === 'CARD_SUBMISSION', '인체 연성 제출 시작');
-      g.c(0).act('submit_cards', [g.cardId(0, '코인')]);
+      g.c(0).act('submit_cards', [g.cardId(0, '코인'), g.cardId(0, '성배')]); // 참가자 3명 → 3장
       g.c(1).act('submit_cards', [g.cardId(1, '코인')]);
       await g.waitFor(() => pa(g)?.type === 'VOTE', '부활 투표 시작');
       g.c(1).act('submit_vote', ID(g, 2), false);
@@ -1181,7 +1181,7 @@ scenario(
 );
 
 scenario(
-  '입장 · 다른 방 소켓: 두 방에 동시에 들어간 소켓의 연결이 끊기면 두 방 모두에서 정리된다',
+  '입장 · 다른 방 소켓: 이미 한 방에 앉은 소켓은 다른 방에 입장할 수 없고, 연결이 끊기면 첫 방에서 정리된다',
   { card: '입장/퇴장', rule: '연결이 끊긴 플레이어는 진행 중인 게임에서 탈락 처리되어야 합니다 (생존한 유령이 남으면 안 됨).' },
   async (t) => {
     const r1 = await openLobby(2, ['가람', '나래']);
@@ -1190,9 +1190,8 @@ scenario(
     const gid = gx.id;
     try {
       gx.raw('join_room', r2.code, '가람');
-      await waitUntil(() => r2.room().players.length === 2, 1000, '가람이 두 번째 방에도 입장');
-      r2.clients[0].raw('start_game', r2.code);
-      await waitUntil(() => r2.room().phase === 'MAIN', 1000, '두 번째 방 게임 시작');
+      await sleep(150);
+      t.expectEq(r2.room().players.length, 1, '이미 다른 방에 앉은 소켓은 두 번째 방에 입장할 수 없음');
       gx.close();
       await sleep(200);
       const inR1 = !!r1.room()?.players.some((p: Player) => p.id === gid);

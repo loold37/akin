@@ -526,12 +526,13 @@ scenario('코인: 이벤트가 없을 때 submit_cards로 보물·악의를 버�
   t.expectEq(g.room.phase, 'MAIN', '단계 그대로');
 });
 
-scenario('누군가의 로켓: 제물에 악의를 제외한 카드로 낼 수 있다', { card: '누군가의 로켓', rule: `${R_LOCKET} / ${R_SAC}` }, async (t) => {
-  const g = await t.game({ players: 2, hands: { 0: ['누군가의 로켓'], 1: ['코인'] }, deck: ['제물'] });
+scenario('누군가의 로켓: 제물에 다른 도구와 함께 악의를 제외한 카드로 낼 수 있다', { card: '누군가의 로켓', rule: `${R_LOCKET} / ${R_SAC}` }, async (t) => {
+  // 누군가의 로켓은 단독으로 낼 수 없으므로(카드 규칙) 다른 보물과 섞어서 낸다.
+  const g = await t.game({ players: 2, hands: { 0: ['누군가의 로켓', '성배'], 1: ['코인'] }, deck: ['제물'] });
   await drawEvent(g, 0, '제물');
   await g.waitFor(() => pa(g)?.eventName === '제물', '제물 제출 시작');
   const locket = g.cardId(0, '누군가의 로켓');
-  g.c(0).act('submit_cards', [locket]);
+  g.c(0).act('submit_cards', [locket, g.cardId(0, '성배')]);
   g.c(1).act('submit_cards', [g.cardId(1, '코인')]);
   await g.waitPhase('MAIN');
   g.check();
@@ -1002,7 +1003,7 @@ scenario('새 게임: 종료 후 start_game을 하면 패·악의·성향·생�
   await waitGameOver(g, [0, 1, 2]);
   t.expectEq(g.room.phase, 'ENDED', '1판 종료');
   const startedBefore = g.c(0).eventsOf('game_started').length;
-  g.c(2).act('start_game'); // 사망했던 플레이어도 새 게임 시작 가능
+  g.c(0).act('start_game'); // 새 게임은 방장(첫 번째 입장자)이 시작
   await g.waitPhase('MAIN');
   await g.waitFor(() => g.clients.every((c) => c.eventsOf('game_started').length > startedBefore && c.state?.phase === 'MAIN'), '새 게임 상태 수신');
   g.tracker.rebaseline();

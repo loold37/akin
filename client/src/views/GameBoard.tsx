@@ -45,6 +45,13 @@ export const GameBoard: React.FC<GameBoardProps> = ({ gameState }) => {
   const [isChatFocused, setIsChatFocused] = useState<boolean>(false);
   const mobileDrawerRef = React.useRef<HTMLDivElement>(null);
 
+  // 차례나 단계가 바뀌면 이전에 고르던 무기·아이템 대상 선택을 비웁니다 (지난 차례의 선택이 남아 잘못 보내지는 것 방지).
+  React.useEffect(() => {
+    setSelectedWeapon(null);
+    setSelectedItem(null);
+    setTiedPlayerTargets([]);
+  }, [gameState.currentTurnPlayerId, gameState.phase]);
+
   // ── [요청 반영] 모바일(안드로이드/iOS) 가상 키보드 뷰포트 높이 실시간 추적 ──
   React.useEffect(() => {
     const vv = window.visualViewport;

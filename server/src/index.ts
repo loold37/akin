@@ -4,6 +4,7 @@ import { Server } from 'socket.io';
 import cors from 'cors';
 import { ClientToServerEvents, ServerToClientEvents, PublicPlayerInfo, Card, PlayerScore } from '../../shared/types';
 import { GameRoom } from './GameRoom';
+import { MAX_PLAYERS } from './constants';
 
 const app = express();
 app.use(cors());
@@ -114,13 +115,7 @@ function emitRoomState(roomCode: string, room: GameRoom): void {
     id: p.id,
     name: p.name,
     isAlive: p.isAlive,
-    handCount: {
-      malices: p.hand.malices.length,
-      weapons: p.hand.weapons.length,
-      shields: p.hand.shields.length,
-      treasures: p.hand.treasures.length,
-      items: p.hand.items.length,
-    },
+    handCount: room.getTotalHandCount(p),
     isMyTurn: p.isMyTurn,
     isSilenced: p.isSilenced,
   }));
@@ -136,6 +131,19 @@ io.on('connection', (socket) => {
     // 빈 코드, 너무 긴 코드, 접속 중인 소켓 id와 같은 코드는 거부합니다.
     // (소켓 id와 같은 이름의 방에 들어가면 그 플레이어의 개인 채널로 가는 방송을 함께 받게 됨)
     if (roomCode.trim() === '' || roomCode.length > MAX_ROOM_CODE_LENGTH || io.sockets.sockets.has(roomCode)) return;
+    // 한 소켓은 한 방에 한 번만 앉을 수 있습니다 (중복 좌석·끊긴 뒤 남는 유령 플레이어 방지).
+    for (const r of rooms.values()) {
+      if (r.getPlayerById(socket.id)) return;
+    }
+    const existingRoom = rooms.get(roomCode);
+    if (existingRoom && existingRoom.phase !== 'WAITING' && existingRoom.phase !== 'ENDED') {
+      socket.emit('action_result', '⚠️ 게임이 진행 중인 방에는 입장할 수 없습니다.');
+      return;
+    }
+    if (existingRoom && existingRoom.players.length >= MAX_PLAYERS) {
+      socket.emit('action_result', `⚠️ 방이 가득 찼습니다 (최대 ${MAX_PLAYERS}명).`);
+      return;
+    }
     let room = rooms.get(roomCode);
     if (!room) {
       room = new GameRoom(roomCode);
@@ -219,6 +227,8 @@ io.on('connection', (socket) => {
   socket.on('start_game', (roomCode) => {
     const room = rooms.get(roomCode);
     if (!room || (room.phase !== 'WAITING' && room.phase !== 'ENDED')) return;
+    // 방장(첫 번째 입장자)만 시작할 수 있습니다. 클라이언트도 같은 기준으로 시작 버튼을 보여 줍니다.
+    if (room.players[0]?.id !== socket.id) return;
 
     const started = room.startGame();
     if (started) {
@@ -327,6 +337,9 @@ const getCategoryKoreanName = (card: any): string => {
 
     if (room.silenceMode) {
       io.to(roomCode).emit('action_result', `🗣️ ${player.name}님이 소리를 냈습니다...! 👁️ 눈 없는 괴물이 즉시 덮칩니다!`);
+      // 괴물에게 누군가 죽으면 괴물은 물러갑니다 (다른 원인의 사망으로는 물러가지 않음).
+      room.silenceMode = false;
+      io.to(roomCode).emit('action_result', '👻 누군가의 비명 소리와 함께 눈 없는 괴물이 물러갔습니다...');
       room.killPlayer(socket.id, msg => io.to(roomCode).emit('action_result', msg));
       if (room.phase === 'MAIN' && room.currentTurnPlayerId === socket.id) {
         room.nextTurn();
@@ -342,6 +355,8 @@ const getCategoryKoreanName = (card: any): string => {
     const room = rooms.get(roomCode);
     if (!room || room.phase !== 'RESOLVING_EVENT' || !room.pendingAction) return;
     if (room.pendingAction.type !== 'VOTE') return;
+    const voterPlayer = room.getPlayerById(socket.id);
+    if (!voterPlayer || !voterPlayer.isAlive) return;
 
     room.pendingAction.responses[socket.id] = {
       targetId,
@@ -355,8 +370,7 @@ const getCategoryKoreanName = (card: any): string => {
       io.to(roomCode).emit('action_result', '🗳️ 누군가 투표를 완료했습니다.');
     }
     
-    const aliveCount = room.getAlivePlayers().length;
-    if (Object.keys(room.pendingAction.responses).length >= aliveCount) {
+    if (room.allAliveResponded()) {
       room.pendingAction.resolve();
       emitGameStateToAll(roomCode, room);
     }
@@ -366,18 +380,17 @@ const getCategoryKoreanName = (card: any): string => {
     const room = rooms.get(roomCode);
     if (!room || room.phase !== 'RESOLVING_EVENT' || !room.pendingAction) return;
     if (!(room.pendingAction as any).revealedCards) return;
+    const player = room.getPlayerById(socket.id);
+    if (!player || !player.isAlive) return;
 
     room.pendingAction.responses[socket.id] = true;
-    const player = room.getPlayerById(socket.id);
     if (player) {
       io.to(roomCode).emit('action_result', `👁️ [${player.name}] 님이 패 공개를 확인했습니다.`);
     }
 
     emitGameStateToAll(roomCode, room);
 
-    const aliveCount = room.getAlivePlayers().length;
-    const confirmedCount = Object.keys(room.pendingAction.responses).length;
-    if (confirmedCount >= aliveCount) {
+    if (room.allAliveResponded()) {
       room.pendingAction.resolve();
       emitGameStateToAll(roomCode, room);
     }
@@ -390,7 +403,7 @@ const getCategoryKoreanName = (card: any): string => {
     if (room.pendingAction.eventName !== '미끼') return;
 
     const player = room.getPlayerById(socket.id);
-    if (!player || !player.isAlive) return;
+    if (!player || !player.isAlive || player.isSilenced) return;
 
     const weaponCard = room.findCardInPlayerHand(player, cardId);
     if (!weaponCard) return;
@@ -434,7 +447,7 @@ const getCategoryKoreanName = (card: any): string => {
     const reordered: Card[] = [];
     for (const cid of cardIds) {
       const found = prophecyCards.find((c) => c.id === cid);
-      if (found) reordered.push(found);
+      if (found && !reordered.includes(found)) reordered.push(found);
     }
 
     // 누락된 카드가 있다면 원래 순서대로 뒤에 추가
@@ -498,6 +511,10 @@ const getCategoryKoreanName = (card: any): string => {
 
     const isGhostEvent = room.pendingAction.eventName === '카르마' || room.pendingAction.eventName === '폴터가이스트';
 
+    // 대상은 방 안의 살아 있는 플레이어여야 합니다.
+    const targetPlayer = room.getPlayerById(targetId);
+    if (!targetPlayer || !targetPlayer.isAlive) return;
+
     if (isGhostEvent) {
       if (player.isAlive) return;
       room.pendingAction.responses[socket.id] = targetId;
@@ -508,6 +525,8 @@ const getCategoryKoreanName = (card: any): string => {
       }
     } else {
       if (room.pendingAction.initiatorId && socket.id !== room.pendingAction.initiatorId) return;
+      // 피바라기는 '다른 생존자'에게만 사용합니다.
+      if (room.pendingAction.eventName === '피바라기' && targetId === socket.id) return;
       room.pendingAction.responses[socket.id] = targetId;
       room.pendingAction.resolve();
       emitGameStateToAll(roomCode, room);
@@ -575,8 +594,19 @@ const getCategoryKoreanName = (card: any): string => {
     if (!room || room.phase !== 'RESOLVING_EVENT' || !room.pendingAction) return;
     if (room.pendingAction.type !== 'CARD_SUBMISSION') return;
     
+    // 카드를 내는 이벤트에서만 받습니다 (예언·패 공개·무소유·엑스칼리버 대기 중 카드가 사라지는 문제 방지).
+    const SUBMISSION_EVENTS = ['무장해제', '면죄부', '인체 연성', '마육검', '제물', '룰렛'];
+    if (!SUBMISSION_EVENTS.includes(room.pendingAction.eventName ?? '')) return;
+
     const player = room.getPlayerById(socket.id);
     if (!player || !player.isAlive) return;
+    // 침묵: 이번 차례에는 이벤트에 내야 하는 도구도 낼 수 없습니다.
+    if (player.isSilenced && cardIds.some((id) => room.findCardInPlayerHand(player, id)?.category === 'TOOL')) {
+      socket.emit('action_result', '⚠️ 침묵 상태라 이번 차례에는 도구를 낼 수 없습니다.');
+      return;
+    }
+    // 이미 낸 사람의 재제출은 받지 않습니다 (먼저 낸 카드가 덮어써져 사라지는 문제 방지).
+    if (Object.prototype.hasOwnProperty.call(room.pendingAction.responses, socket.id)) return;
 
     // 룰렛은 1장만 제출 가능
     let actualCardIds = cardIds;
@@ -622,8 +652,7 @@ const getCategoryKoreanName = (card: any): string => {
         io.to(roomCode).emit('action_result', `⏩ ${player.name}님이 [무장해제]를 스킵했습니다.`);
       }
 
-      const aliveCount = room.getAlivePlayers().length;
-      if (Object.keys(room.pendingAction.responses).length >= aliveCount) {
+      if (room.allAliveResponded()) {
         room.pendingAction.resolve();
       }
       emitGameStateToAll(roomCode, room);
@@ -668,8 +697,7 @@ const getCategoryKoreanName = (card: any): string => {
         io.to(roomCode).emit('action_result', `⏩ ${player.name}님이 [면죄부]를 스킵했습니다.`);
       }
 
-      const aliveCount = room.getAlivePlayers().length;
-      if (Object.keys(room.pendingAction.responses).length >= aliveCount) {
+      if (room.allAliveResponded()) {
         room.pendingAction.resolve();
       }
       emitGameStateToAll(roomCode, room);
@@ -679,6 +707,15 @@ const getCategoryKoreanName = (card: any): string => {
     // 인체 연성 제물 제출 처리 (모든 생존자 0장 ~ 도구 카드 전체 제출 가능)
     if (room.pendingAction.eventName === '인체 연성') {
       if (room.pendingAction.responses[socket.id]) return;
+
+      // 악의를 겸한 도구(누군가의 뼈·방패·로켓) 1장만 단독으로 낼 수는 없습니다.
+      const toolsToSubmit = actualCardIds
+        .map((cardId) => room.findCardInPlayerHand(player, cardId))
+        .filter((c): c is Card => !!c && c.category === 'TOOL');
+      if (toolsToSubmit.length === 1 && ((toolsToSubmit[0] as any).maliceValue ?? 0) > 0) {
+        socket.emit('action_result', '⚠️ 악의를 겸한 도구는 단독으로 제출할 수 없습니다. 다른 도구와 함께 내세요.');
+        return;
+      }
 
       const removedCards = [];
       for (const cardId of actualCardIds) {
@@ -698,8 +735,7 @@ const getCategoryKoreanName = (card: any): string => {
         io.to(roomCode).emit('action_result', `⏩ ${player.name}님이 [인체 연성]에 제물을 바치지 않았습니다.`);
       }
 
-      const aliveCount = room.getAlivePlayers().length;
-      if (Object.keys(room.pendingAction.responses).length >= aliveCount) {
+      if (room.allAliveResponded()) {
         room.pendingAction.resolve();
       }
       emitGameStateToAll(roomCode, room);
@@ -712,7 +748,7 @@ const getCategoryKoreanName = (card: any): string => {
       resp.submittedAt = Date.now();
       room.pendingAction.responses[socket.id] = resp;
       io.to(roomCode).emit('action_result', `${player.name}님이 [마육검] 입찰을 마쳤습니다.`);
-      if (Object.keys(room.pendingAction.responses).length >= room.getAlivePlayers().length) {
+      if (room.allAliveResponded()) {
         room.pendingAction.resolve();
       }
       emitGameStateToAll(roomCode, room);
@@ -726,15 +762,26 @@ const getCategoryKoreanName = (card: any): string => {
       room.pendingAction.responses[socket.id] = resp;
       io.to(roomCode).emit('action_result', `⏩ ${player.name}님이 [제물]을 바치지 않았습니다. (0장)`);
 
-      const aliveCount = room.getAlivePlayers().length;
+      // '참가자 수'는 사망자를 포함한 전체 참가 인원입니다.
       const totalSubmitted = (Object.values(room.pendingAction.responses).flat() as any[]).length;
-      const submittedPlayerCount = Object.keys(room.pendingAction.responses).length;
-
-      if (totalSubmitted >= aliveCount || submittedPlayerCount >= aliveCount) {
+      if (totalSubmitted >= room.players.length || room.allAliveResponded()) {
         room.pendingAction.resolve();
       }
       emitGameStateToAll(roomCode, room);
       return;
+    }
+
+    // 제물은 악의를 제외한 카드(도구)만 받으며, 악의를 겸한 도구 1장만 단독으로 낼 수는 없습니다.
+    if (room.pendingAction.eventName === '제물') {
+      const offered = actualCardIds.map((cardId) => room.findCardInPlayerHand(player, cardId));
+      if (offered.some((c) => !c || c.category !== 'TOOL')) {
+        socket.emit('action_result', '⚠️ 제물로는 악의를 제외한 카드(도구)만 바칠 수 있습니다.');
+        return;
+      }
+      if (offered.length === 1 && ((offered[0] as any).maliceValue ?? 0) > 0) {
+        socket.emit('action_result', '⚠️ 악의를 겸한 도구는 단독으로 제출할 수 없습니다. 다른 도구와 함께 내세요.');
+        return;
+      }
     }
 
     // Remove cards from player's hand immediately
@@ -750,11 +797,9 @@ const getCategoryKoreanName = (card: any): string => {
       room.pendingAction.responses[socket.id] = removedCards;
       io.to(roomCode).emit('action_result', `⚗️ ${player.name}님이 [제물]로 도구 카드 ${removedCards.length}장을 바쳤습니다.`);
 
-      const aliveCount = room.getAlivePlayers().length;
+      // '참가자 수'는 사망자를 포함한 전체 참가 인원입니다.
       const totalSubmitted = (Object.values(room.pendingAction.responses).flat() as any[]).length;
-      const submittedPlayerCount = Object.keys(room.pendingAction.responses).length;
-
-      if (totalSubmitted >= aliveCount || submittedPlayerCount >= aliveCount) {
+      if (totalSubmitted >= room.players.length || room.allAliveResponded()) {
         room.pendingAction.resolve();
       }
       emitGameStateToAll(roomCode, room);
@@ -796,17 +841,17 @@ const getCategoryKoreanName = (card: any): string => {
         }
       }
 
-      // 룰렛/마육검 등 인원수 기준
-      let targetSubmissionCount = room.getAlivePlayers().length;
+      // 룰렛은 카드를 가진(또는 이미 낸) 생존자 전원, 마육검은 생존자 전원이 응답하면 처리합니다.
+      let everyoneDone = room.allAliveResponded();
       if (room.pendingAction.eventName === '룰렛') {
         const submitterIds = Object.keys(room.pendingAction.responses);
-        const alivePlayersWithCards = room.getAlivePlayers().filter(
-          p => submitterIds.includes(p.id) || room.getTotalHandCount(p) > 0
-        );
-        targetSubmissionCount = alivePlayersWithCards.length;
+        everyoneDone = room
+          .getAlivePlayers()
+          .filter(p => submitterIds.includes(p.id) || room.getTotalHandCount(p) > 0)
+          .every(p => submitterIds.includes(p.id));
       }
 
-      if (Object.keys(room.pendingAction.responses).length >= targetSubmissionCount) {
+      if (everyoneDone) {
         room.pendingAction.resolve();
       }
       emitGameStateToAll(roomCode, room);
@@ -890,10 +935,11 @@ const getCategoryKoreanName = (card: any): string => {
     if (!player || !player.isAlive) return;
 
     // 엑스칼리버 획득 조건: 악의가 0장인 채로 가장 빠르게 패 공개
-    const hasMaliceCards = player.hand.malices.length > 0;
-    const hasMaliceScore = player.currentMalice > 0;
+    // 선의로 악의 점수가 0이 되어도, 악의 카드나 악의를 겸한 도구(누군가의 뼈·방패·로켓)를 가졌다면 얻을 수 없습니다.
+    const tools = [...player.hand.weapons, ...player.hand.shields, ...player.hand.treasures, ...player.hand.items];
+    const hasMaliceCards = player.hand.malices.length > 0 || tools.some(c => (c.maliceValue ?? 0) > 0);
 
-    if (hasMaliceCards || hasMaliceScore) {
+    if (hasMaliceCards) {
       socket.emit('action_result', '⚠️ 악의를 보유한 상태에서는 엑스칼리버를 획득할 수 없습니다!');
       return;
     }
@@ -938,8 +984,8 @@ const getCategoryKoreanName = (card: any): string => {
       room.pendingAction.skippedPlayerIds.push(player.id);
     }
 
-    const aliveCount = room.getAlivePlayers().length;
-    if (room.pendingAction.skippedPlayerIds.length >= aliveCount) {
+    const skipped = room.pendingAction.skippedPlayerIds;
+    if (room.getAlivePlayers().every(p => skipped.includes(p.id))) {
       io.to(roomCode).emit('action_result', '💨 모든 생존자가 포기하여 엑스칼리버가 사라졌습니다.');
       room.pendingAction.resolve();
       emitGameStateToAll(roomCode, room);
@@ -1105,8 +1151,9 @@ const getCategoryKoreanName = (card: any): string => {
     const player = room.getPlayerById(socket.id);
     if (!player || !player.isAlive || player.isSilenced) return;
 
-    if (!room.linkedPlayers || !room.linkedPlayers.includes(socket.id)) {
-      socket.emit('action_result', '⚠️ 현재 인연의 끈으로 연결되어 있지 않습니다.');
+    // 규칙: 묶인 당사자가 아니어도 아무 생존자나 언제든 무기로 인연을 끊을 수 있습니다.
+    if (!room.linkedPlayers) {
+      socket.emit('action_result', '⚠️ 현재 인연의 끈으로 묶인 생존자가 없습니다.');
       return;
     }
 
@@ -1120,13 +1167,12 @@ const getCategoryKoreanName = (card: any): string => {
     room.graveyard.push(weapon);
     room.recalculateMalice(player);
 
-    const partnerId = room.linkedPlayers.find(id => id !== socket.id);
-    const partner = partnerId ? room.getPlayerById(partnerId) : null;
+    const [first, second] = room.linkedPlayers.map(id => room.getPlayerById(id)?.name ?? '?');
     room.linkedPlayers = null;
 
     io.to(roomCode).emit(
       'action_result',
-      `✂️ ${player.name}님이 [${weapon.name}]을(를) 소모하여 ${partner ? partner.name + '님과의 ' : ''}인연의 끈을 끊었습니다!`
+      `✂️ ${player.name}님이 [${weapon.name}]을(를) 소모하여 ${first}님과 ${second}님의 인연의 끈을 끊었습니다!`
     );
 
     emitGameStateToAll(roomCode, room);
@@ -1197,6 +1243,7 @@ const getCategoryKoreanName = (card: any): string => {
               io.to(roomCode).emit('action_result', `🗡️ ${attacker?.name ?? '공격자'}님의 공격으로 ${currentTarget.name}님이 사망했습니다!`);
               
               if (weapon.name === '교화의 창' && attacker && attacker.isAlive) {
+                room.graveyard.push(...attacker.hand.malices);
                 attacker.hand.malices = [];
                 room.recalculateMalice(attacker);
                 io.to(roomCode).emit('action_result', `✨ 교화의 창 효과로 ${attacker.name}님의 모든 악의가 정화되었습니다!`);
@@ -1218,7 +1265,8 @@ const getCategoryKoreanName = (card: any): string => {
                 room.pendingAction!.initiatorId = currentTargetId;
                 room.pendingAction!.targetId = nextTarget.id;
                 room.pendingAction!.deadline = Date.now() + room.eventTimeoutMs;
-                room.pendingAction!.responses = {}; 
+                room.pendingAction!.responses = {};
+                room.pendingAction!.skippedPlayerIds = []; // 앞 피격자 때의 방어 포기는 새 피격자에게 이어지지 않음
                 
                 room.pendingAction!.timer = setTimeout(() => {
                   if (room.pendingAction) room.pendingAction.resolve();
@@ -1259,7 +1307,10 @@ const getCategoryKoreanName = (card: any): string => {
     const initiatorId = room.pendingAction.initiatorId;
 
     // 수호천사(또는 화살함정 시 일반 방패)를 가진 생존자 목록 (공격자/함정발동자 본인 제외)
-    const interveningPlayers = isArrowTrap
+    const unblockable = room.pendingAction.weaponCard?.name === '엑스칼리버';
+    const interveningPlayers = unblockable
+      ? []
+      : isArrowTrap
       ? room.getAlivePlayers().filter(p => p.id !== targetId && p.hand.shields.length > 0)
       : room.getAlivePlayers().filter(p => p.id !== initiatorId && p.hand.shields.some(s => s.name === '수호천사'));
 
@@ -1301,7 +1352,12 @@ const getCategoryKoreanName = (card: any): string => {
       }
       room.pendingAction?.resolve();
     } else {
-      io.to(roomCode).emit('action_result', `🛡️ ${player.name}님이 방어/개입을 포기했습니다. (다른 생존자들의 결정을 대기 중...)`);
+      // 개입 포기는 수호천사(화살 함정이면 방패) 소지자만 할 수 있으므로, 이름을 방 전체에 알리면 소지자가 드러납니다.
+      if (isTarget) {
+        io.to(roomCode).emit('action_result', `🛡️ ${player.name}님이 방어를 포기했습니다. (다른 생존자들의 결정을 대기 중...)`);
+      } else {
+        socket.emit('action_result', '🛡️ 개입을 포기했습니다. (다른 생존자들의 결정을 대기 중...)');
+      }
       emitGameStateToAll(roomCode, room);
     }
   });
@@ -1412,16 +1468,24 @@ const getCategoryKoreanName = (card: any): string => {
     } else {
       // 진행 중인 게임에서 이탈 처리
       if (room.pendingAction) {
-        if (room.pendingAction.initiatorId === socketId || room.pendingAction.targetId === socketId) {
-          if (room.pendingAction.timer) clearTimeout(room.pendingAction.timer);
-          room.returnToMainPhase();
+        const pending = room.pendingAction as any;
+        if (pending.initiatorId === socketId || pending.targetId === socketId) {
+          if (pending.revealedCards || (pending.type === 'DEFENSE' && pending.eventName === '룰렛')) {
+            // 이미 나온 패 공개 결과(뽑은 자 사망 등)와 룰렛 연쇄 공격은 퇴장과 상관없이 그대로 진행합니다.
+            pending.resolve();
+          } else {
+            if (pending.timer) clearTimeout(pending.timer);
+            // 취소되는 이벤트에 제출돼 있던 카드(마육검 입찰 등)는 주인에게 돌려줍니다.
+            room.refundPendingSubmissions();
+            room.returnToMainPhase();
+          }
         }
       }
 
       if (player.isAlive) {
         room.killPlayer(player.id, (msg) => io.to(roomCode).emit('action_result', msg));
         io.to(roomCode).emit('action_result', `🚪 ${player.name}님이 방을 나가 탈락 처리되었습니다.`);
-        io.to(roomCode).emit('player_died', player.id, player.name, player.hand);
+        io.to(roomCode).emit('player_died', player.id, player.name);
       }
 
       room.removePlayer(socketId);

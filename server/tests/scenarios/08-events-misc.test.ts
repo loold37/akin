@@ -865,7 +865,7 @@ scenario('눈 없는 괴물: 중간에 죽은 자가 부활해 생존자가 늘�
   const g = await t.game({
     players: 4,
     dead: [3],
-    hands: { 0: ['성정'], 1: ['성배'], 2: ['복권'] },
+    hands: { 0: ['성정'], 1: ['성배'], 2: ['복권', '황금 방패'] },
     deck: ['눈 없는 괴물', '코인', '인체 연성'],
   });
   await drawEvent(g, 0);
@@ -878,7 +878,7 @@ scenario('눈 없는 괴물: 중간에 죽은 자가 부활해 생존자가 늘�
   await g.waitFor(() => pa(g)?.eventName === '인체 연성' && pa(g)?.type === 'CARD_SUBMISSION', '인체 연성 제출 단계');
   g.c(0).act('submit_cards', [g.cardId(0, '성정')]);
   g.c(1).act('submit_cards', [g.cardId(1, '성배')]);
-  g.c(2).act('submit_cards', [g.cardId(2, '복권')]);
+  g.c(2).act('submit_cards', [g.cardId(2, '복권'), g.cardId(2, '황금 방패')]); // 참가자 4명 → 4장
   await g.waitFor(() => pa(g)?.type === 'VOTE', '부활 투표');
   for (const i of [0, 1, 2]) g.c(i).act('submit_vote', g.c(3).id);
   await g.waitFor(() => g.p(3).isAlive, '라온 부활');

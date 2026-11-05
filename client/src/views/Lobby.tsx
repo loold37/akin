@@ -152,7 +152,7 @@ export const Lobby: React.FC = () => {
                   <button
                     className="btn-gold start-game-btn"
                     onClick={startGame}
-                    disabled={roomPlayers.length < 1}
+                    disabled={roomPlayers.length < 2}
                   >
                     게임 시작 ({roomPlayers.length}명)
                   </button>

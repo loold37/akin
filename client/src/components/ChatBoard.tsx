@@ -86,7 +86,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   placeholder = '메시지를 입력하세요 (Enter로 전송)',
   onFocusChange,
 }) => {
-  const { sendChat } = useSocket();
+  const { sendChat, gameState, socket } = useSocket();
   const [inputText, setInputText] = useState('');
   const [isFocused, setIsFocused] = useState(false);
   const [bottomOffset, setBottomOffset] = useState(0);
@@ -117,6 +117,16 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputText.trim()) return;
+
+    // 눈 없는 괴물이 있는 동안 살아 있는 플레이어가 채팅하면 괴물에게 들켜 죽습니다. 보내기 전에 한 번 확인합니다.
+    const me = gameState?.players.find((p) => p.id === socket?.id);
+    if (
+      gameState?.silenceMode &&
+      me?.isAlive &&
+      !window.confirm('👁️ 눈 없는 괴물이 있습니다! 지금 채팅하면 괴물에게 들켜 죽습니다. 그래도 보낼까요?')
+    ) {
+      return;
+    }
 
     sendChat(inputText);
     setInputText('');
