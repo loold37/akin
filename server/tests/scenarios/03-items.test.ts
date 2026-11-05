@@ -145,13 +145,14 @@ scenario('독재: 인체 연성 부활 투표(생존자 회의 아님)에서는 
   const g = await t.game({
     players: 5,
     dead: [3, 4],
-    hands: { 0: ['독재', '코인'], 1: ['성배'], 2: ['복권'] },
+    hands: { 0: ['독재', '코인', '황금 방패'], 1: ['성배', '골든 레코드'], 2: ['복권'] },
     deck: ['인체 연성'],
   });
   await drawEvent(g, 0, '인체 연성');
   await g.waitFor(() => pending(g)?.type === 'CARD_SUBMISSION', '인체 연성 제출 단계');
-  g.c(0).act('submit_cards', [g.cardId(0, '코인')]);
-  g.c(1).act('submit_cards', [g.cardId(1, '성배')]);
+  // 참가자 수(사망자 포함 5명)만큼 바친다
+  g.c(0).act('submit_cards', [g.cardId(0, '코인'), g.cardId(0, '황금 방패')]);
+  g.c(1).act('submit_cards', [g.cardId(1, '성배'), g.cardId(1, '골든 레코드')]);
   g.c(2).act('submit_cards', [g.cardId(2, '복권')]);
   await waitVote(g, '부활 투표 시작');
   vote(g, 0, 3, true);

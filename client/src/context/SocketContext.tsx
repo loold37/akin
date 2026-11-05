@@ -208,7 +208,7 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       ]);
     });
 
-    s.on('player_died', (_id, name, _revealedHand) => {
+    s.on('player_died', (_id, name) => {
       const deathMsg = `💀 ${name}님이 사망했습니다!`;
       setActionLogs((prev) => [...prev, deathMsg]);
     });

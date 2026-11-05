@@ -98,19 +98,11 @@ export interface Player {
 }
 
 // ── Public Info (타인에게 노출되는 정보만) ───────────────────────────
-export interface HandCount {
-  malices: number;
-  weapons: number;
-  shields: number;
-  treasures: number;
-  items: number;
-}
-
 export interface PublicPlayerInfo {
   id: string;
   name: string;
   isAlive: boolean;
-  handCount: HandCount;
+  handCount: number; // 패의 총 장수. 종류별 장수(악의 몇 장 등)는 비공개입니다.
   isMyTurn: boolean;
   isSilenced: boolean;
 }
@@ -222,7 +214,7 @@ export interface ServerToClientEvents {
   events_triggered: (events: EventCard[]) => void;
   action_result: (message: string) => void;
   chat_message: (playerName: string, message: string) => void;
-  player_died: (playerId: string, playerName: string, revealedHand: PlayerHand) => void;
+  player_died: (playerId: string, playerName: string) => void; // 패는 공개하지 않습니다
   game_over: (scores: PlayerScore[]) => void;
   game_started: () => void;
   // 이벤트 UI 요청

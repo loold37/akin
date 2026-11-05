@@ -32,12 +32,7 @@ export const PlayerRing: React.FC<PlayerRingProps> = ({
           const isMe = p.id === myId;
           const isCurrentTurn = p.id === currentTurnPlayerId;
           const isLinked = !!(gameState?.linkedPlayers && gameState.linkedPlayers.includes(p.id));
-          const totalCards =
-            p.handCount.malices +
-            p.handCount.weapons +
-            p.handCount.shields +
-            p.handCount.treasures +
-            p.handCount.items;
+          const totalCards = p.handCount;
 
           const isSelectable =
             targetSelectionMode &&

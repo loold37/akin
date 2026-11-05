@@ -1,7 +1,7 @@
 import {
   Player, Card, GamePhase, ToolCard,
   EventCard, DrawResult, EventCardName,
-  SanitizedGameState, PublicPlayerInfo, HandCount, PlayerScore
+  SanitizedGameState, PublicPlayerInfo, PlayerScore
 } from '../../shared/types';
 import { generateDeck } from './Deck';
 import {
@@ -36,6 +36,7 @@ export class GameRoom {
   
   public silenceMode: boolean = false;
   public silenceTurnCount: number = 0;
+  public silenceDrawerId: string | null = null; // 눈 없는 괴물을 뽑은 사람 (이 사람의 차례가 돌아오면 괴물이 물러감)
   public freeForAll: boolean = false;
   private isResolvingAction: boolean = false;
   
@@ -169,8 +170,11 @@ export class GameRoom {
 
     this.players.splice(idx, 1);
 
-    if (this.players.length > 0 && this.currentTurnIndex >= this.players.length) {
-      this.currentTurnIndex = 0;
+    // 자리가 빠지면 뒤 좌석의 인덱스가 하나씩 당겨지므로 현재 차례 플레이어 기준으로 인덱스를 다시 맞춥니다.
+    // 현재 차례 플레이어가 나간 경우에는 다음 nextTurn()이 그 자리를 이어받은 좌석으로 가도록 한 칸 앞을 가리킵니다.
+    if (this.players.length > 0) {
+      const turnIdx = this.players.findIndex(p => p.id === this.currentTurnPlayerId);
+      this.currentTurnIndex = turnIdx !== -1 ? turnIdx : (idx - 1 + this.players.length) % this.players.length;
     }
 
     if (this.phase === 'MAIN' && this.currentTurnPlayerId === id && !this.checkLastSurvivor()) {
@@ -184,6 +188,14 @@ export class GameRoom {
 
   public getAlivePlayers(): Player[] {
     return this.players.filter(p => p.isAlive);
+  }
+
+  // 대기 중인 투표·제출에 살아 있는 플레이어가 모두 응답했는지 확인합니다.
+  // 죽은 사람·퇴장자·방 밖 소켓의 응답은 세지 않습니다.
+  public allAliveResponded(): boolean {
+    const responses = this.pendingAction?.responses;
+    if (!responses) return false;
+    return this.getAlivePlayers().every(p => Object.prototype.hasOwnProperty.call(responses, p.id));
   }
 
   public killPlayer(playerId: string, emitMsg?: (msg: string) => void): void {
@@ -216,6 +228,7 @@ export class GameRoom {
     let scavengerOwner = null;
     let scavengerCardId = null;
     for (const p of alivePlayers) {
+       if (p.isSilenced) continue; // 침묵 상태에서는 도구(스캐빈져)를 쓸 수 없음
        const sIdx = p.hand.items.findIndex(c => c.name === '스캐빈져');
        if (sIdx !== -1) {
           scavengerOwner = p;
@@ -225,7 +238,8 @@ export class GameRoom {
     }
 
     if (scavengerOwner && scavengerCardId) {
-       this.removeCardFromHand(scavengerOwner, scavengerCardId);
+       const usedScavenger = this.removeCardFromHand(scavengerOwner, scavengerCardId);
+       if (usedScavenger) this.graveyard.push(usedScavenger);
        
        const allDeadCards = [
          ...player.hand.malices,
@@ -247,11 +261,6 @@ export class GameRoom {
        }
     }
 
-    if (this.silenceMode) {
-      this.silenceMode = false;
-      if (emitMsg) emitMsg('👻 누군가의 비명 소리와 함께 눈 없는 괴물이 물러갔습니다...');
-    }
-
     // 생존자가 1명 이하가 되었다면 대기 중인 투표·제출을 처리하기 전에 게임을 먼저 끝냅니다.
     // (먼저 처리하면 남아 있던 표가 마지막 생존자를 처형하는 등 결과가 뒤집힙니다.)
     if (this.phase !== 'ENDED' && this.checkLastSurvivor()) {
@@ -267,7 +276,12 @@ export class GameRoom {
         if (this.pendingAction.targetId === playerId) {
           this.pendingAction.resolve();
         }
-      } else if (this.pendingAction.type === 'VOTE' || this.pendingAction.type === 'CARD_SUBMISSION' || this.pendingAction.type === 'TARGET_SELECTION') {
+      } else if (this.pendingAction.type === 'VOTE' || this.pendingAction.type === 'CARD_SUBMISSION') {
+        // 방금 죽은 사람이 마지막 미응답자였다면 바로 처리합니다 (죽은 사람의 기존 응답은 세지 않음)
+        if (this.allAliveResponded()) {
+          this.pendingAction.resolve();
+        }
+      } else if (this.pendingAction.type === 'TARGET_SELECTION') {
         if (Object.keys(this.pendingAction.responses).length >= currentAlive) {
           this.pendingAction.resolve();
         }
@@ -463,6 +477,11 @@ export class GameRoom {
           } else {
             this.setupTransmutationSubmission(eventCard);
           }
+        } else if (eventCard.name === '룰렛' && this.getAlivePlayers().every(p => this.getTotalHandCount(p) === 0)) {
+          if (this.onBroadcastMessage) {
+            this.onBroadcastMessage('🎯 카드를 가진 생존자가 없어 [룰렛]이 효과 없이 종료되었습니다.');
+          }
+          this.returnToMainPhase();
         } else {
           this.setupCardSubmission(eventCard);
         }
@@ -475,7 +494,8 @@ export class GameRoom {
         break;
       case 'SILENCE_MODE':
         this.silenceMode = true;
-        this.silenceTurnCount = this.getAlivePlayers().length; // 한 바퀴(현재 생존자 수)
+        this.silenceDrawerId = initiator.id;
+        this.silenceTurnCount = this.getAlivePlayers().length; // 뽑은 자가 죽었을 때 쓰는 대체 기준: 한 바퀴
         this.returnToMainPhase();
         break;
       case 'AUCTION':
@@ -617,6 +637,14 @@ export class GameRoom {
       responses: {},
       resolve: () => {
         if (this.pendingAction?.timer) clearTimeout(this.pendingAction.timer);
+
+        // 경매 중 죽은 입찰자의 공개 카드도 패로 돌려줍니다 (입찰 자격은 생존자만).
+        for (const player of this.players.filter(p => !p.isAlive)) {
+          const resp = this.pendingAction?.responses[player.id];
+          const cards = (Array.isArray(resp) ? resp : []) as Card[];
+          cards.forEach(card => this.addCardToHand(player, card));
+          if (cards.length > 0) this.recalculateMalice(player);
+        }
 
         const alivePlayers = this.getAlivePlayers();
         let maxMaliceBid = 0;
@@ -779,10 +807,11 @@ export class GameRoom {
       resolve: () => {
         if (this.pendingAction?.timer) clearTimeout(this.pendingAction.timer);
 
-        const alivePlayers = this.getAlivePlayers();
+        // '참가자 수'는 사망자를 포함한 전체 참가 인원입니다.
+        const participantCount = this.players.length;
         const submittedCards = Object.values(this.pendingAction!.responses).flat() as Card[];
 
-        if (submittedCards.length < alivePlayers.length) {
+        if (submittedCards.length < participantCount) {
           // 실패: 낸 카드들 다시 돌려주기
           for (const [pId, cards] of Object.entries(this.pendingAction!.responses)) {
             const p = this.getPlayerById(pId);
@@ -793,7 +822,7 @@ export class GameRoom {
           }
           if (this.onBroadcastMessage) {
             this.onBroadcastMessage(
-              `⚗️ 모인 제물 카드(${submittedCards.length}장)가 생존자 수(${alivePlayers.length}장)에 미달하여 [인체 연성]이 실패했습니다. 제출한 카드는 모두 반환됩니다.`
+              `⚗️ 모인 제물 카드(${submittedCards.length}장)가 참가자 수(${participantCount}장)에 미달하여 [인체 연성]이 실패했습니다. 제출한 카드는 모두 반환됩니다.`
             );
           }
           this.returnToMainPhase();
@@ -802,7 +831,7 @@ export class GameRoom {
           this.graveyard.push(...submittedCards);
           if (this.onBroadcastMessage) {
             this.onBroadcastMessage(
-              `✨ 생존자들의 제물(${submittedCards.length}장)이 목표치(${alivePlayers.length}장)를 달성했습니다! 부활시킬 사망자를 투표합니다.`
+              `✨ 생존자들의 제물(${submittedCards.length}장)이 목표치(${participantCount}장)를 달성했습니다! 부활시킬 사망자를 투표합니다.`
             );
           }
           this.setupTransmutationVoting(eventCard);
@@ -851,10 +880,9 @@ export class GameRoom {
           const counts: Record<string, number> = {};
           currentDead.forEach(p => { counts[p.id] = 0; });
 
+          // 인체 연성 카드 문구에는 '생존자 회의'가 없으므로 독재를 적용하지 않습니다 (1인 1표).
           for (const p of alivePlayers) {
             const v = votes[p.id];
-            const isUsingDictator = typeof v === 'object' && v?.useDictatorship;
-            const hasDictatorCard = p.hand.items.some(c => c.name === '독재');
             let val = typeof v === 'object' && v ? v.targetId : v;
 
             // 미투표자는 무작위 사망자 1명에게 투표
@@ -863,22 +891,7 @@ export class GameRoom {
               val = randomDead.id;
             }
 
-            if (isUsingDictator && hasDictatorCard) {
-              const dictIdx = p.hand.items.findIndex(c => c.name === '독재');
-              if (dictIdx !== -1) {
-                const removed = p.hand.items.splice(dictIdx, 1)[0];
-                this.graveyard.push(removed);
-                this.recalculateMalice(p);
-              }
-              counts[val] = (counts[val] || 0) + 666;
-              if (this.onBroadcastMessage) {
-                this.onBroadcastMessage(
-                  `👑 ${p.name}님이 [독재] 카드를 사용했습니다!`
-                );
-              }
-            } else {
-              counts[val] = (counts[val] || 0) + 1;
-            }
+            counts[val] = (counts[val] || 0) + 1;
           }
 
           let maxVotes = -1;
@@ -895,6 +908,8 @@ export class GameRoom {
           const revivedPlayer = this.getPlayerById(chosenTargetId);
           if (revivedPlayer && !revivedPlayer.isAlive) {
             revivedPlayer.isAlive = true;
+            const h = revivedPlayer.hand;
+            this.graveyard.push(...h.malices, ...h.weapons, ...h.shields, ...h.treasures, ...h.items);
             revivedPlayer.hand = { malices: [], weapons: [], shields: [], treasures: [], items: [] };
             this.recalculateMalice(revivedPlayer);
             if (this.onBroadcastMessage) {
@@ -923,7 +938,8 @@ export class GameRoom {
     if (eventCard.name === '고해성사') {
       for (const p of alivePlayers) {
         if (p.hand.malices.length >= 3) {
-          p.hand.malices.pop();
+          const discarded = p.hand.malices.pop();
+          if (discarded) this.graveyard.push(discarded);
           this.recalculateMalice(p);
         }
       }
@@ -1431,7 +1447,9 @@ export class GameRoom {
             );
             return;
           } else if (eventCard.name === '카르마') {
-            // 카르마는 타겟의 패에 악의 1장으로 들어감
+            // 카르마는 타겟의 패에 악의 1장으로 들어감 (뽑을 때 무덤에 넣었던 이벤트 카드는 치움)
+            const karmaIdx = this.graveyard.findIndex(c => c.id === eventCard.id);
+            if (karmaIdx !== -1) this.graveyard.splice(karmaIdx, 1);
             target.hand.malices.push({
               id: eventCard.id,
               cardId: 104,
@@ -1505,7 +1523,8 @@ export class GameRoom {
         const submittedCards = Object.values(this.pendingAction!.responses).flat() as Card[];
         
         if (eventCard.name === '제물') {
-          if (submittedCards.length < alivePlayers.length) {
+          // '참가자 수'는 사망자를 포함한 전체 참가 인원입니다.
+          if (submittedCards.length < this.players.length) {
             // 실패: 낸 카드들 다시 돌려주기
             for (const [pId, cards] of Object.entries(this.pendingAction!.responses)) {
               const p = this.getPlayerById(pId);
@@ -1733,10 +1752,14 @@ export class GameRoom {
     this.players[this.currentTurnIndex].hasDrawnThisTurn = false;
     this.players[this.currentTurnIndex].hasUsedWeaponThisTurn = false;
     
+    // 눈 없는 괴물은 뽑은 자의 차례가 다시 돌아오면 물러갑니다 (뽑은 자가 죽었으면 한 바퀴 기준).
     if (this.silenceMode) {
-      this.silenceTurnCount--;
-      if (this.silenceTurnCount <= 0) {
-        this.silenceMode = false;
+      const drawer = this.silenceDrawerId ? this.getPlayerById(this.silenceDrawerId) : undefined;
+      if (drawer && drawer.isAlive) {
+        if (this.currentTurnPlayerId === drawer.id) this.silenceMode = false;
+      } else {
+        this.silenceTurnCount--;
+        if (this.silenceTurnCount <= 0) this.silenceMode = false;
       }
     }
     
@@ -1872,7 +1895,7 @@ export class GameRoom {
     const me = this.getPlayerById(forPlayerId);
 
     const publicPlayers: PublicPlayerInfo[] = this.players.map(p => {
-      const handCount = this.getHandCount(p);
+      const handCount = this.getTotalHandCount(p);
       return {
         id: p.id,
         name: p.name,
@@ -1906,7 +1929,10 @@ export class GameRoom {
       defenseTargetId: this.pendingAction?.targetId ?? null,
       defenseInitiatorId: this.pendingAction?.initiatorId ?? null,
       defenseWeaponName: this.pendingAction?.weaponCard?.name ?? null,
-      defenseSkippedPlayerIds: this.pendingAction?.skippedPlayerIds ?? [],
+      // 개입 포기 목록은 소지자를 드러내므로, 본인과 피격자의 포기 여부만 알려 줍니다.
+      defenseSkippedPlayerIds: (this.pendingAction?.skippedPlayerIds ?? []).filter(
+        id => id === forPlayerId || id === this.pendingAction?.targetId
+      ),
       defenseHasGuardianAngel: hasGuardianAngel,
       excaliburSkippedPlayerIds: this.pendingAction?.eventName === '엑스칼리버' ? (this.pendingAction.skippedPlayerIds ?? []) : [],
       mayukWinnerId: (this.pendingAction?.eventName === '마육검' && this.pendingAction?.type === 'TARGET_SELECTION') ? this.pendingAction.initiatorId : null,
@@ -1926,16 +1952,6 @@ export class GameRoom {
       turnDeadline: this.turnDeadline,
       turnRemainingSeconds: Math.ceil(this.turnRemainingMs / 1000),
       isTurnTimerPaused: this.isTurnTimerPaused || this.phase !== 'MAIN',
-    };
-  }
-
-  public getHandCount(player: Player): HandCount {
-    return {
-      malices: player.hand.malices.length,
-      weapons: player.hand.weapons.length,
-      shields: player.hand.shields.length,
-      treasures: player.hand.treasures.length,
-      items: player.hand.items.length,
     };
   }
 

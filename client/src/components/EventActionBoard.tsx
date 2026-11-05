@@ -108,6 +108,8 @@ export const EventActionBoard: React.FC<EventActionBoardProps> = ({
   const partner = partnerId ? gameState.players.find((p) => p.id === partnerId) : null;
 
   useEffect(() => {
+    // 새 요청이 오면 이전 이벤트에서 고른 카드가 섞여 제출되지 않도록 선택을 비웁니다.
+    setSelectedCardIds([]);
     setUseDictatorship(false);
     setSelectedGiftCardId(null);
     setSelectedGiftTargetId(null);
@@ -213,7 +215,8 @@ export const EventActionBoard: React.FC<EventActionBoardProps> = ({
   );
 
   // ── 0. FATE LINK (인연의 끈) OVERLAY ──────────────────────────────────
-  if (showFateOverlay && isLinked && partner) {
+  // 방어·투표 등 처리할 요청이나 패 공개가 있으면 그 화면이 인연의 끈 오버레이보다 우선합니다.
+  if (showFateOverlay && isLinked && partner && !actionRequest && !gameState.revealedCardsInfo) {
     return (
       <div className="event-action-board fate-link-overlay">
         <div className="embedded-action-header">
@@ -616,7 +619,8 @@ export const EventActionBoard: React.FC<EventActionBoardProps> = ({
           const isPitEvent = actionRequest.eventName === '구덩이';
           const isTransmuteVote = actionRequest.eventName === '인체 연성';
           const isBaitEvent = actionRequest.eventName === '미끼';
-          const canUseDictator = !isPitEvent;
+          // 독재는 '생존자 회의' 문구가 있는 이벤트에서만 (구덩이·인체 연성 부활 투표 제외)
+          const canUseDictator = !isPitEvent && !isTransmuteVote;
           const pitVictim = isPitEvent
             ? gameState.players.find((p) => p.id === actionRequest.initiatorId)
             : null;
